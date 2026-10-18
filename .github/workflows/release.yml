@@ -38,18 +38,13 @@ jobs:
         run: npm run check
       - name: Package dry run
         run: npm pack --dry-run
-      - name: Publish to npm (OIDC first, token fallback)
+      - name: Publish to npm (OIDC trusted publishing)
         if: github.event_name == 'push'
-        env:
-          FALLBACK_NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # Try the OIDC trusted publishing path first (short-lived credential).
+          # Pure OIDC: the only credential is the short-lived GitHub Actions
+          # identity configured as this package's Trusted Publisher.
           unset NODE_AUTH_TOKEN
-          if npm publish --access public --provenance; then
-            exit 0
-          fi
-          echo "OIDC trusted publishing was not accepted; using NPM_TOKEN fallback."
-          npm publish --access public --provenance --//registry.npmjs.org/:_authToken="$FALLBACK_NPM_TOKEN"
+          npm publish --access public --provenance
       - name: Create GitHub release
         if: github.event_name == 'push'
         env:
