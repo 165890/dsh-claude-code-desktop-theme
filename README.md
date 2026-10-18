@@ -4,6 +4,8 @@
 
 A Claude Code desktop-style theme for the **DeepSeek Harness** Web GUI, plus the merged usage-overview card, real session status dots, composer HUD and a diff review drawer.
 
+[![CI](https://github.com/165890/dsh-claude-code-desktop-theme/actions/workflows/ci.yml/badge.svg)](https://github.com/165890/dsh-claude-code-desktop-theme/actions/workflows/ci.yml)
+
 ![Hero](preview-skeleton-hero.png)
 
 ## 功能
