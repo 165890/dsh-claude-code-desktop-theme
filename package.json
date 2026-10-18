@@ -1,6 +1,6 @@
 {
   "name": "dsh-claude-code-desktop-theme",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Claude Code desktop look for the DeepSeek Harness Web GUI: warm cream surfaces, terracotta accent, serif interface, Absolutely code palette, real session status dots, composer HUD, diff review drawer and the merged usage overview card.",
   "type": "module",
   "exports": {

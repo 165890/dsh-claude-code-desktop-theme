@@ -70,6 +70,9 @@ pnpm add link:/path/to/dsh-claude-code-desktop-theme
 - 主题自动跟随 Claude Code 桌面端的浅色外观；系统偏好为 `system` 时插件会切到浅色。
 - 首页左上角的用量卡片按全屏比例缩放，窗口大小变化时保持长宽比；侧边栏收起时居中显示。
 - 侧栏状态点、HUD、余额、用量卡片全部读取宿主真实数据，不包含 mock/占位值。
+- **数据来源**：上下文占用、缓存命中率与实时 `tok/s` 直接来自宿主 `contextPressure` / `tokenUsage` / `sessionStats` 投影，会话开始后立即显示，不依赖任何第三方信息栏插件。
+- **本次花费**：若已安装 [dsh-bottom-info-bar](https://github.com/songoao25/dsh-bottom-info-bar) 并启用其账本，优先显示实扣金额；未安装时按真实 token 用量 × 内置 DeepSeek 官方价目表估算（悬停可见提示），未收录的模型显示 `—`，不伪造数字。
+- **余额**：先立即显示上次成功读取的余额缓存，再在账户服务返回后刷新为实时值；未登录 DeepSeek 账户时显示 `—`。
 - 卸载/禁用插件会自动撤销 Token 覆盖层、注入的 DOM 与监听器。
 
 ## 开发

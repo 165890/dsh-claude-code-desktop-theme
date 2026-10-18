@@ -1081,7 +1081,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       tray.innerHTML = [
         '<div class="dsh-tray-group dsh-tray-left">',
         '<span class="dsh-hud-part dsh-hud-context">' + ring + '<span class="dsh-hud-context-label">上下文 —</span></span>',
-        '<span class="dsh-hud-part dsh-hud-cache">缓存 —</span>',
+        '<span class="dsh-hud-part dsh-hud-cache">缓存命中 —</span>',
         '</div>',
         '<div class="dsh-tray-group dsh-tray-right">',
         '<span class="dsh-hud-part dsh-hud-cost">本次花费 <span class="dsh-hud-value">' + TRAY_COST_FALLBACK + '</span></span>',
@@ -1094,8 +1094,21 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       return tray
     }
 
+    const BALANCE_CACHE_KEY = 'dsh-theme-last-balance'
+    const COST_CACHE_KEY = 'dsh-theme-last-session-cost'
+    const SESSION_COST_ROUTE = '/api/dsh-claude-code-desktop-theme/usage-summary'
+    let sessionCostText = null
+    let sessionCostId = null
+    let sessionCostFetchedAt = 0
+    let sessionCostPending = false
     let lastKnownBalance = null
     let lastKnownTps = null
+    try {
+      const cached = window.localStorage.getItem(BALANCE_CACHE_KEY)
+      if (typeof cached === 'string' && cached !== '') lastKnownBalance = cached
+    } catch {
+      // localStorage may be unavailable in restricted profiles.
+    }
 
     /** Read cost / balance / tokens-per-second out of the hidden legacy bar. */
     function readLegacyStats() {
@@ -1116,10 +1129,12 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       const balance = rawBalance === undefined ? lastKnownBalance : format(rawBalance)
       const tpsMatch = text.match(/([\d.,]+)\s*tok\/s/)
       const cacheMatch = text.match(/(?:缓存命中|cache hit)\s*([\d.]+%)/)
+      const rawCost = pick(/(?:本会话|本次花费|本次)[^¥￥$0-9]{0,8}([¥￥$]?\s*[\d][\d,.]*)/)
       if (balance !== undefined) lastKnownBalance = balance
       if (tpsMatch !== null) lastKnownTps = tpsMatch[1] + ' tok/s'
       return {
-        cost: format(pick(/(?:本会话|本次花费|本次)[^¥￥$0-9]{0,8}([¥￥$]?\s*[\d][\d,.]*)/) ?? TRAY_COST_FALLBACK),
+        cost: format(rawCost ?? TRAY_COST_FALLBACK),
+        costKnown: rawCost !== undefined,
         balance,
         tps: tpsMatch === null ? lastKnownTps : tpsMatch[1] + ' tok/s',
         cacheHit: cacheMatch === null ? null : cacheMatch[1],
@@ -1133,14 +1148,72 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
      * @returns a dispose callback that removes the trays and the timer.
      */
     function mountComposerTray() {
+      try {
+        const cached = JSON.parse(window.localStorage.getItem(COST_CACHE_KEY) ?? 'null')
+        if (cached !== null && typeof cached === 'object' && typeof cached.text === 'string') {
+          sessionCostText = cached.text
+          sessionCostId = typeof cached.sessionId === 'string' ? cached.sessionId : null
+        }
+      } catch {
+        // The cost cache is best effort.
+      }
+
+      const refreshSessionCost = () => {
+        if (readLegacyStats().costKnown) return
+        const sessionId = bridge.currentSessionId
+        if (typeof sessionId !== 'string' || sessionId === '') return
+        if (sessionCostPending) return
+        if (sessionCostId === sessionId && Date.now() - sessionCostFetchedAt < 5000) return
+        sessionCostPending = true
+        fetch(SESSION_COST_ROUTE, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        })
+          .then((response) => response.json())
+          .then((payload) => {
+            const cost = payload?.value?.sessionCost
+            if (cost === null || typeof cost !== 'object') return
+            if (cost.sessionId !== sessionId || cost.priced !== true || typeof cost.cost !== 'number') return
+            const symbol = cost.currency === 'USD' ? '$' : '¥'
+            const digits = cost.cost > 0 && cost.cost < 0.01 ? 4 : 2
+            sessionCostText = symbol + cost.cost.toLocaleString('en-US', {
+              minimumFractionDigits: digits,
+              maximumFractionDigits: digits,
+            })
+            sessionCostId = sessionId
+            sessionCostFetchedAt = Date.now()
+            try {
+              window.localStorage.setItem(COST_CACHE_KEY, JSON.stringify({ sessionId, text: sessionCostText }))
+            } catch {
+              // Best effort only.
+            }
+          })
+          .catch(() => {
+            // Keep the cached or legacy value; retry on the next tick.
+          })
+          .finally(() => {
+            sessionCostPending = false
+          })
+      }
+
       const render = () => {
         const money = readLegacyStats()
-        const cacheText = money.cacheHit === null ? '缓存 —' : '缓存命中 ' + money.cacheHit
+        refreshSessionCost()
         // tok/s is live: only a running Session has a decode speed, otherwise 0.
         const sessionStatus = bridge.sessions?.statuses?.get(bridge.currentSessionId) ?? null
         const sessionSummary = bridge.sessions?.byId?.[bridge.currentSessionId] ?? null
         const running = sessionStatus?.running ?? sessionSummary?.running ?? false
-        const tpsText = running ? (money.tps ?? '0 tok/s') : '0 tok/s'
+        const computedTps = typeof bridge.tokensPerSecond === 'number' ? bridge.tokensPerSecond : null
+        const tpsText = running
+          ? (computedTps !== null && computedTps > 0 ? computedTps + ' tok/s' : (money.tps ?? '0 tok/s'))
+          : '0 tok/s'
+        const cachedHit = typeof bridge.cacheHitPercent === 'number'
+          ? bridge.cacheHitPercent.toFixed(1).replace(/\.0$/, '') + '%'
+          : null
+        const cacheText = cachedHit !== null
+          ? '缓存命中 ' + cachedHit
+          : (money.cacheHit === null ? '缓存命中 —' : '缓存命中 ' + money.cacheHit)
         const context = bridge.context
         const percent = context === null ? 0 : context.percent
         const contextLabelText = context === null ? '上下文 —' : '上下文 ' + percent + '%'
@@ -1148,6 +1221,10 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           ? ''
           : formatTokens(context.usedTokens) + ' / ' + formatTokens(context.contextWindow) + ' tokens'
         const agents = bridge.agentsKnown ? bridge.agents : 0
+        const liveCost = money.costKnown
+          ? money.cost
+          : (sessionCostId === bridge.currentSessionId && sessionCostText !== null ? sessionCostText : '—')
+        const costIsEstimate = money.costKnown === false
         // A brand-new (blank) Session has no conversation yet: hide the whole
         // tray so the home page never shows a fake 上下文/花费/余额 readout.
         // The hero headline is the reliable "not started yet" UI signal; the
@@ -1160,7 +1237,14 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           const cache = tray.querySelector('.dsh-hud-cache')
           if (cache !== null && cache.textContent !== cacheText) cache.textContent = cacheText
           const cost = tray.querySelector('.dsh-hud-cost .dsh-hud-value')
-          if (cost !== null && cost.textContent !== money.cost) cost.textContent = money.cost
+          if (cost !== null && cost.textContent !== liveCost) cost.textContent = liveCost
+          const costPart = tray.querySelector('.dsh-hud-cost')
+          if (costPart !== null) {
+            const title = costIsEstimate
+              ? '按真实 token 用量与官方价目估算；安装底部信息栏插件可显示账单实扣金额'
+              : '本会话实扣金额'
+            if (costPart.getAttribute('title') !== title) costPart.setAttribute('title', title)
+          }
           const tps = tray.querySelector('.dsh-hud-tps .dsh-hud-value')
           if (tps !== null && tps.textContent !== tpsText) tps.textContent = tpsText
           syncSidebarBalance()
@@ -1626,6 +1710,31 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         // Keep the last known context reading.
       }
       try {
+        const stats = input.stats
+        if (stats !== null && typeof stats === 'object') {
+          bridge.stats = stats
+          const decodeMs = typeof stats.decodeMs === 'number' ? stats.decodeMs : 0
+          const decodeTokens = typeof stats.decodeTokens === 'number' ? stats.decodeTokens : 0
+          bridge.tokensPerSecond = decodeMs > 0 ? Math.max(0, Math.round(decodeTokens / (decodeMs / 1000))) : 0
+        }
+      } catch (error) {
+        // Keep the last known session statistics.
+      }
+      try {
+        const usage = input.usage
+        const totals = usage && typeof usage === 'object' ? usage.totals : null
+        if (totals !== null && typeof totals === 'object') {
+          bridge.tokenUsage = totals
+          const read = typeof totals.cacheReadTokens === 'number' ? totals.cacheReadTokens : 0
+          const uncached = typeof totals.uncachedInputTokens === 'number' ? totals.uncachedInputTokens : 0
+          const write = typeof totals.cacheWriteTokens === 'number' ? totals.cacheWriteTokens : 0
+          const prompt = read + uncached + write
+          bridge.cacheHitPercent = prompt > 0 ? Math.round((read / prompt) * 1000) / 10 : null
+        }
+      } catch (error) {
+        // Keep the last known token usage.
+      }
+      try {
         const entries = input.projections?.[input.sessionId]?.values?.subagentCatalog
         if (Array.isArray(entries)) {
           bridge.agentsKnown = true
@@ -1695,6 +1804,8 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       bridge.renders = (bridge.renders ?? 0) + 1
       const nodes = useChat((state) => state.legacy.nodes)
       const pressure = useProjection('contextPressure')
+      const stats = useProjection('sessionStats')
+      const usage = useProjection('tokenUsage')
       const projections = useSessions((state) => state.projectionsBySession)
       const summaries = useSessions((state) => state.byId)
       const cwd = useSessions((state) => state.byId[sessionId]?.cwd)
@@ -1703,7 +1814,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         try {
           const summary = summaries?.[sessionId]
           const blank = summary?.blank === true || (nodes?.length ?? 0) === 0
-          updateBridge({ nodes, pressure, projections, summaries, statuses, sessionId, cwd, blank })
+          updateBridge({ nodes, pressure, stats, usage, projections, summaries, statuses, sessionId, cwd, blank })
         } catch (error) {
           bridge.lastError = String(error && error.message ? error.message : error)
         }
@@ -2051,6 +2162,11 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
             if (Number.isFinite(amount) === false) return false
             const symbol = wallet.currency === 'USD' ? '$' : '¥'
             lastKnownBalance = symbol + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            try {
+              window.localStorage.setItem(BALANCE_CACHE_KEY, lastKnownBalance)
+            } catch {
+              // Best-effort cache only.
+            }
             syncSidebarBalance()
             return true
           }
@@ -2196,6 +2312,9 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           return rows
         }
         window.__dshClaudeThemeStatusDebug = debugStatusDots
+
+
+
 
 
 

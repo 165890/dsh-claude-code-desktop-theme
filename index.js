@@ -364,6 +364,108 @@ async function buildSummary(sessionQuery, logger) {
 }
 
 /**
+ * Official per-million-token prices (CNY) for the model ids DeepSeek Harness
+ * routes in this profile. Used only for the in-app spend estimate when the
+ * companion bottom-info-bar plugin is absent; the ledger-owned figure wins
+ * whenever it is available.
+ */
+const PRICING = {
+  'deepseek-flash': { currency: 'CNY', mode: 'peak-valley',
+    peak: { inputCacheHit: 0.04, inputCacheMiss: 2.0, output: 8.0 },
+    offpeak: { inputCacheHit: 0.02, inputCacheMiss: 1.0, output: 4.0 } },
+  'deepseek-v4-flash': { currency: 'CNY', mode: 'peak-valley',
+    peak: { inputCacheHit: 0.04, inputCacheMiss: 2.0, output: 8.0 },
+    offpeak: { inputCacheHit: 0.02, inputCacheMiss: 1.0, output: 4.0 } },
+  'deepseek-v4-flash-vision-exp': { currency: 'CNY', mode: 'peak-valley',
+    peak: { inputCacheHit: 0.04, inputCacheMiss: 2.0, output: 8.0 },
+    offpeak: { inputCacheHit: 0.02, inputCacheMiss: 1.0, output: 4.0 } },
+  'deepseek-v4-pro': { currency: 'CNY', mode: 'peak-valley',
+    peak: { inputCacheHit: 0.30, inputCacheMiss: 9.0, output: 27.0 },
+    offpeak: { inputCacheHit: 0.15, inputCacheMiss: 4.5, output: 13.5 } },
+  'deepseek-chat': { currency: 'CNY', mode: 'flat',
+    price: { inputCacheHit: 0.5, inputCacheMiss: 2.0, output: 8.0 } },
+}
+
+const PROVIDER_SCOPED_PRICING = {
+  'deepseek:deepseek-flash': 'deepseek-flash',
+  'deepseek:deepseek-v4-flash': 'deepseek-v4-flash',
+  'deepseek:deepseek-v4-flash-vision-exp': 'deepseek-v4-flash-vision-exp',
+  'deepseek:deepseek-v4-pro': 'deepseek-v4-pro',
+  'deepseek:deepseek-chat': 'deepseek-chat',
+}
+
+function pricingFor(provider, model) {
+  if (typeof model !== 'string' || model === '') return null
+  const scoped = typeof provider === 'string' ? PROVIDER_SCOPED_PRICING[provider + ':' + model] : undefined
+  const key = scoped ?? model
+  return Object.hasOwn(PRICING, key) ? PRICING[key] : null
+}
+
+/** Beijing-time peak window: weekdays 09:00–12:00 and 14:00–18:00. */
+function isPeakTime(time) {
+  const beijing = new Date(time + 8 * 60 * 60 * 1000)
+  const day = beijing.getUTCDay()
+  if (day === 0 || day === 6) return false
+  const hour = beijing.getUTCHours()
+  return (hour >= 9 && hour < 12) || (hour >= 14 && hour < 18)
+}
+
+const SESSION_COST_CACHE_MS = 5 * 1000
+const sessionCostCache = new Map()
+
+/**
+ * Price the assistant usage samples of one Session with the built-in table.
+ * This is a real token-based estimate, not a billing statement: unknown
+ * providers/models stay unpriced and therefore report `priced: false`.
+ * @param {object} sessionQuery - Host session-query service.
+ * @param {string} sessionId - Session id to fold.
+ * @returns {Promise<object>} `{ sessionId, cost, currency, priced, model }`.
+ */
+async function buildSessionCost(sessionQuery, sessionId) {
+  const key = String(sessionId)
+  const cached = sessionCostCache.get(key)
+  if (cached !== undefined && Date.now() - cached.at < SESSION_COST_CACHE_MS) return cached.value
+
+  const observed = await sessionQuery.observeSession(sessionId, { projectionMode: 'none' })
+  let model
+  let provider
+  let cost = 0
+  let priced = true
+  for (const event of observed.events) {
+    if (event?.type === 'request/header') {
+      const config = event?.data?.header?.config
+      if (typeof config?.model === 'string' && config.model !== '') model = config.model
+      if (typeof config?.provider === 'string' && config.provider !== '') provider = config.provider
+      continue
+    }
+    if (event?.type !== 'assistant/message') continue
+    const usage = event?.data?.usage
+    if (usage === null || typeof usage !== 'object') continue
+    const entry = pricingFor(provider, model)
+    if (entry === null) {
+      priced = false
+      continue
+    }
+    const rates = entry.mode === 'peak-valley'
+      ? (isPeakTime(typeof event.time === 'number' ? event.time : Date.now()) ? entry.peak : entry.offpeak)
+      : entry.price
+    const n = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : 0)
+    const miss = n(usage.inputTokens) + n(usage.cacheWriteTokens)
+    cost += (n(usage.cacheReadTokens) * rates.inputCacheHit + miss * rates.inputCacheMiss + n(usage.outputTokens) * rates.output) / 1e6
+  }
+
+  const value = {
+    sessionId: key,
+    cost: priced ? Math.round(cost * 10000) / 10000 : null,
+    currency: 'CNY',
+    priced,
+    model: model ?? null,
+  }
+  sessionCostCache.set(key, { at: Date.now(), value })
+  return value
+}
+
+/**
  * Register the summary route. The route is served on the authenticated
  * Connection fetch channel and therefore needs no extra token handling.
  * @param {import('@deepseek-ai/cordis').Context} ctx - Host plugin context.
@@ -399,10 +501,25 @@ function installUsageSummaryRoute(ctx) {
           path: SUMMARY_PATH,
           methods: ['POST'],
           requestBody: 'buffered',
-          fetch: async () => {
+          fetch: async (request) => {
             try {
+              let sessionId
+              try {
+                const body = await request.json()
+                if (body !== null && typeof body === 'object' && typeof body.sessionId === 'string') sessionId = body.sessionId
+              } catch {
+                // The usage card posts an empty body; the cost field is optional.
+              }
+              const value = await summary()
+              if (sessionId !== undefined) {
+                const sessionCost = await buildSessionCost(query, sessionId)
+                return Response.json(
+                  { ok: true, value: { ...value, sessionCost } },
+                  { headers: { 'cache-control': 'no-store' } },
+                )
+              }
               return Response.json(
-                { ok: true, value: await summary() },
+                { ok: true, value },
                 { headers: { 'cache-control': 'no-store' } },
               )
             } catch (error) {
