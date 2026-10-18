@@ -5,6 +5,7 @@
 A Claude Code desktop-style theme for the **DeepSeek Harness** Web GUI, plus the merged usage-overview card, real session status dots, composer HUD and a diff review drawer.
 
 [![CI](https://github.com/165890/dsh-claude-code-desktop-theme/actions/workflows/ci.yml/badge.svg)](https://github.com/165890/dsh-claude-code-desktop-theme/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/dsh-claude-code-desktop-theme)](https://www.npmjs.com/package/dsh-claude-code-desktop-theme) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ![Hero](preview-skeleton-hero.png)
 
