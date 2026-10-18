@@ -12,7 +12,7 @@ on:
         default: 'true'
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -42,3 +42,8 @@ jobs:
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
