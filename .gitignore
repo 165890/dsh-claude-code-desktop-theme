@@ -1,0 +1,6 @@
+node_modules/
+.tmp-asar/
+*.log
+.DS_Store
+Thumbs.db
+.env

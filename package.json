@@ -1,0 +1,61 @@
+{
+  "name": "dsh-claude-code-desktop-theme",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Claude Code desktop look for the DeepSeek Harness Web GUI: warm cream surfaces, terracotta accent, serif interface, Absolutely code palette, real session status dots, composer HUD, diff review drawer and the merged usage overview card.",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "assets/*",
+    "preview*.png",
+    "README.md",
+    "docs/*.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-theme"
+      ]
+    }
+  },
+  "license": "MIT",
+  "author": "Mach.G <https://github.com/165890>",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "theme",
+    "claude",
+    "desktop",
+    "plugin",
+    "usage-overview"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "check": "node --check index.js && node --check client.js"
+  },
+  "homepage": "https://github.com/165890/dsh-claude-code-desktop-theme#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/165890/dsh-claude-code-desktop-theme.git"
+  },
+  "bugs": {
+    "url": "https://github.com/165890/dsh-claude-code-desktop-theme/issues"
+  }
+}
