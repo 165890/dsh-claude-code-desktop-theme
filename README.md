@@ -106,8 +106,8 @@ git push --follow-tags
 
 1. 校验 tag 与 `package.json` 版本一致；
 2. 运行 `npm run check` 与 `npm pack --dry-run`；
-3. 通过 **npm OIDC Trusted Publishing** 执行 `npm publish --access public --provenance`
-   （不需要任何长期 token；npm 包设置里已绑定本仓库的 `release.yml`）。
+3. 优先尝试 **npm OIDC Trusted Publishing**；若该包尚未识别到 OIDC 信任配置，
+   自动回退到仓库 secret `NPM_TOKEN` 执行 `npm publish --access public --provenance`。
 
 > npm 新包/部分发布可能先进入 **staged publishing** 队列，需要维护者在 npm 网站（Staged Packages）用 2FA 批准后才会正式上线。
 
