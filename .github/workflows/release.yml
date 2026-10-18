@@ -23,7 +23,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
       - name: Use npm CLI with trusted publishing support
         run: npm install -g npm@11.15.0
       - name: Check tag matches package version
@@ -41,7 +40,9 @@ jobs:
         run: npm pack --dry-run
       - name: Publish to npm (OIDC trusted publishing)
         if: github.event_name == 'push'
-        run: npm publish --access public --provenance
+        run: |
+          unset NODE_AUTH_TOKEN
+          npm publish --access public --provenance
       - name: Create GitHub release
         if: github.event_name == 'push'
         env:
