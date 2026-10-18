@@ -95,6 +95,21 @@ npm run check      # node --check index.js client.js
 npm pack --dry-run # 查看发布内容
 ```
 
+### 发版
+
+```bash
+npm version patch   # 或 minor / major，会创建提交与 tag
+git push --follow-tags
+```
+
+推送 `v*` tag 后，GitHub Actions 的 **Release** 工作流会：
+
+1. 校验 tag 与 `package.json` 版本一致；
+2. 运行 `npm run check` 与 `npm pack --dry-run`；
+3. 用仓库 secret `NPM_TOKEN` 执行 `npm publish --access public --provenance`。
+
+> npm 现在默认启用 **staged publishing**：新版本可能先进入 stage 队列，需要维护者在 npm 网站（Staged Packages）用 2FA 批准后才会正式上线。配置 Trusted Publishing 后可以改为在 CI 里 `npm stage publish`，再人工批准，无需长期 token。
+
 ## 许可证
 
 [MIT](LICENSE)。内置字体子集来自 Noto Serif SC（SIL Open Font License 1.1），许可证见 `assets/OFL.txt`。

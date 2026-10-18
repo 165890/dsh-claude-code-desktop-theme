@@ -47,7 +47,8 @@
     "access": "public"
   },
   "scripts": {
-    "check": "node --check index.js && node --check client.js"
+    "check": "node --check index.js && node --check client.js",
+    "prepublishOnly": "npm run check"
   },
   "homepage": "https://github.com/165890/dsh-claude-code-desktop-theme#readme",
   "repository": {

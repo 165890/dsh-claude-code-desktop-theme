@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only verify the package (do not publish)'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Check tag matches package version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "package version: $VERSION"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${GITHUB_REF_NAME#v}"
+            echo "tag: $TAG"
+            test "$TAG" = "$VERSION" || { echo "tag/version mismatch"; exit 1; }
+          fi
+      - name: Syntax check
+        run: npm run check
+      - name: Package dry run
+        run: npm pack --dry-run
+      - name: Publish to npm
+        if: github.event_name == 'push'
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
