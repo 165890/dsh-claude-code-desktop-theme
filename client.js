@@ -4925,6 +4925,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         window.__dshClaudeThemeStatusDebug = debugStatusDots
 
 
+
         // Font-rendering diagnostics for issue reports: which platform, DPI,
         // computed smoothing and whether the embedded UI serif actually loaded.
         const debugFont = () => {
