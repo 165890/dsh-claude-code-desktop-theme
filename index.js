@@ -537,7 +537,127 @@ function installUsageSummaryRoute(ctx) {
 }
 
 
+/** One handwritten character; the host renders these into the index body. */
+function bootChars(text, startDelay) {
+  return Array.from(text)
+    .map((char, index) => `<span class="dsh-boot-char" style="--dsh-boot-delay:${startDelay + index * 42}ms">${char === ' ' ? '&nbsp;' : char}</span>`)
+    .join('')
+}
+
+/**
+ * Boot curtain injected into index.html at body start. Because it is part of the
+ * initial HTML it paints before the Harness boot card, so it replaces the stock
+ * "Loading plugins..." screen instead of appearing after it. The whole style
+ * block lives inside the overlay, so removing the overlay also restores the
+ * stock boot UI if it is still on screen.
+ */
+const BOOT_BODY = `<div id="dsh-boot-overlay" role="status" aria-label="Hello, can I do for you?">
+<style>
+  [data-dsh-boot]{display:none!important}
+  #dsh-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 42%,#fbf8f1 0%,#f5f3ee 58%,#efe9dd 100%);color:#1d1b16;opacity:1;animation:dsh-boot-curtain 2.75s cubic-bezier(.4,0,.2,1) both;overflow:hidden;contain:paint;font-family:Georgia,"Palatino Linotype","Times New Roman",serif;user-select:none}
+  #dsh-boot-overlay[data-leaving="1"]{opacity:0!important;pointer-events:none;transition:opacity .32s ease}
+  #dsh-boot-overlay .dsh-boot-type{display:flex;flex-direction:column;align-items:center;line-height:1;transition:opacity .14s ease}
+  #dsh-boot-overlay .dsh-boot-line{display:block;white-space:nowrap;font-family:Georgia,"Palatino Linotype","Times New Roman",serif!important;font-size:clamp(42px,6.4vw,86px);line-height:1.04;letter-spacing:.01em}
+  #dsh-boot-overlay .dsh-boot-char{font-family:Georgia,"Palatino Linotype","Times New Roman",serif!important}
+  #dsh-boot-overlay .dsh-boot-line--hello{color:#1d1b16;font-style:normal;font-weight:400}
+  #dsh-boot-overlay .dsh-boot-line--question{margin-top:.08em;color:#a94c2b;font-style:italic;font-weight:400;opacity:0;animation:dsh-boot-reveal .52s cubic-bezier(.16,1,.3,1) .72s both}
+  #dsh-boot-overlay .dsh-boot-char{display:inline-block;opacity:0;transform-origin:50% 80%;backface-visibility:hidden;will-change:transform,opacity;animation:dsh-boot-write .4s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--dsh-boot-delay,0ms)}
+  #dsh-boot-overlay .dsh-boot-rule{width:clamp(48px,5vw,84px);height:2px;margin-top:26px;border-radius:1px;background:#a94c2b;opacity:.32;transform:scaleX(0);transform-origin:left;animation:dsh-boot-rule .6s cubic-bezier(.16,1,.3,1) 1.05s both;transition:opacity .14s ease}
+  #dsh-boot-overlay .dsh-boot-hint{position:absolute;bottom:44px;font-family:"SF Mono","Consolas",monospace!important;font-size:11px;letter-spacing:.08em;color:#9a9080;opacity:0;animation:dsh-boot-hint .3s ease 1s both}
+  #dsh-boot-overlay[data-leaving="1"] .dsh-boot-type,
+  #dsh-boot-overlay[data-leaving="1"] .dsh-boot-rule,
+  #dsh-boot-overlay[data-leaving="1"] .dsh-boot-hint{opacity:0!important;transition:opacity .14s ease!important}
+  @keyframes dsh-boot-write{0%{opacity:0;transform:translate3d(0,7px,0) rotate(-3deg) scale(.96)}60%{opacity:1}100%{opacity:1;transform:translate3d(0,0,0) rotate(0) scale(1)}}
+  @keyframes dsh-boot-reveal{0%{opacity:0;transform:translate3d(0,10px,0)}100%{opacity:1;transform:translate3d(0,0,0)}}
+  @keyframes dsh-boot-rule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes dsh-boot-hint{from{opacity:0}to{opacity:.85}}
+  @keyframes dsh-boot-curtain{0%{opacity:1}87%{opacity:1}100%{opacity:0;visibility:hidden}}
+  @media (prefers-reduced-motion: reduce){
+    #dsh-boot-overlay{animation-duration:1.2s}
+    #dsh-boot-overlay .dsh-boot-char{opacity:1;animation:none!important;filter:none!important;transform:none!important}
+    #dsh-boot-overlay .dsh-boot-line--question{opacity:1;animation:none!important;transform:none!important}
+    #dsh-boot-overlay .dsh-boot-rule{transform:none;animation:none!important;opacity:.32}
+    #dsh-boot-overlay .dsh-boot-hint{opacity:.85;animation:none!important}
+  }
+</style>
+<div class="dsh-boot-type">
+  <div class="dsh-boot-line dsh-boot-line--hello">${bootChars('Hello,', 0)}</div>
+  <div class="dsh-boot-line dsh-boot-line--question">can I do for you?</div>
+</div>
+<div class="dsh-boot-rule"></div>
+<div class="dsh-boot-hint">点击任意处跳过</div>
+<script>
+(function () {
+  var script = document.currentScript;
+  var overlay = (script && script.parentNode && script.parentNode.id === 'dsh-boot-overlay')
+    ? script.parentNode
+    : null;
+  if (overlay === null) overlay = document.getElementById('dsh-boot-overlay');
+  if (overlay === null) return;
+  var onceKey = 'dsh-theme-boot-v3-played';
+  var disabledKey = 'dsh-theme-boot-disabled';
+  try {
+    if (window.sessionStorage.getItem(onceKey) === '1' || window.localStorage.getItem(disabledKey) === '1') {
+      overlay.remove();
+      return;
+    }
+    window.sessionStorage.setItem(onceKey, '1');
+  } catch (error) {
+    /* storage may be unavailable; play the animation once anyway */
+  }
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // The reveal is pure CSS and runs from the moment the document is parsed, so
+  // a window that maps late still opens on readable copy instead of a blank
+  // curtain. Waiting for visibilityState or rAF to "start" the animation was
+  // measured to leave the screen empty for about a second: Electron keeps the
+  // page hidden and suspends rAF well past the point the window is on screen.
+  //
+  // This script is only an accelerator. The injected markup goes through an
+  // HTML insertion path where inline scripts are not executed, so the curtain
+  // now fades itself out with the dsh-boot-curtain keyframes. Never make the
+  // removal depend on this block running.
+  var holdMs = reduced ? 900 : 2400;
+  var finished = false;
+  var endTimer = null;
+  var watchdog = null;
+  function remove() {
+    if (overlay.parentNode !== null) overlay.parentNode.removeChild(overlay);
+  }
+  function finish() {
+    if (finished) return;
+    finished = true;
+    if (endTimer !== null) window.clearTimeout(endTimer);
+    if (watchdog !== null) window.clearTimeout(watchdog);
+    overlay.setAttribute('data-leaving', '1');
+    window.setTimeout(remove, 460);
+  }
+  endTimer = window.setTimeout(finish, holdMs);
+  // Hard cap: the curtain must never outlive the boot even if finish() throws
+  // or a timer is throttled by a hidden window.
+  watchdog = window.setTimeout(remove, holdMs + 1800);
+  overlay.addEventListener('click', finish);
+  window.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') finish();
+  });
+})();
+</script>
+</div>`
+
+/** Register the index-body injection; the disposer removes it with the plugin. */
+function installBootInjection(ctx) {
+  const row = { kind: 'html', placement: 'body', html: BOOT_BODY }
+  ctx.on('webserver/index-inject', (table) => {
+    if (!Array.isArray(table)) return
+    table.push(row)
+  })
+}
+
 /** Loader entry: install the merged usage summary route. */
 export function apply(ctx) {
   installUsageSummaryRoute(ctx)
+  try {
+    installBootInjection(ctx)
+  } catch (error) {
+    ctx.logger?.warn?.(`dsh-claude-code-desktop-theme: boot injection failed: ${String(error?.message ?? error)}`)
+  }
 }

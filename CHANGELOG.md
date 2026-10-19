@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.1
+
+- 重做开机主题动画：暖米色幕布 + `Hello,` / `can I do for you?` 手写逐字动画。Host 在 `index.html` body 首帧注入并隐藏 Harness 自带 boot card，Client 保留兜底；点击 / Esc / Enter / 空格可跳过。
+- 修复：启动动画文字原先会被主题全局 `body *` 字体规则强制覆盖，播放中途换字体；现在动画字体单独锁定。
+- 修复：UI 字体统一为内嵌 `DSH Serif UI`，移除 `思源宋体 VF` / `Source Han Serif` / `Noto Serif SC` 本机字体依赖；代码字体统一 `SF Mono` / `Consolas`。
+- 修复：实时语音取消改为点击麦克风停止，移除独立 × 按钮，录音时不再改变工具栏宽度。
+
 ## 2.2.0
 
 - 新增：对话框语音输入恢复并主题化——官方实验语音 Bundle 的麦克风重新可见，录音条、波形、圆按钮、脉冲全部换成奶油/陶土橙；未启用语音 Bundle 时优雅隐藏。

@@ -88,7 +88,7 @@ pnpm add link:/path/to/dsh-claude-code-desktop-theme
 - **数据来源**：上下文占用、缓存命中率与实时 `tok/s` 直接来自宿主 `contextPressure` / `tokenUsage` / `sessionStats` 投影，会话开始后立即显示，不依赖任何第三方信息栏插件。
 - **本次花费**：若已安装 [dsh-bottom-info-bar](https://github.com/songoao25/dsh-bottom-info-bar) 并启用其账本，优先显示实扣金额；未安装时按真实 token 用量 × 内置 DeepSeek 官方价目表估算（悬停可见提示），未收录的模型显示 `—`，不伪造数字。
 - **余额**：先立即显示上次成功读取的余额缓存，再在账户服务返回后刷新为实时值；未登录 DeepSeek 账户时显示 `—`。
-- **开机动画**：视觉/时长常量在 `client.js` 的 `BOOT_DURATION_MS` 与 `mountBootAnimation()` 附近；想关闭可执行 `localStorage.setItem("dsh-theme-boot-disabled","1")`，想重播可清 `sessionStorage` 的 `dsh-theme-boot-played`。
+- **开机动画**：视觉/时长常量在 `client.js` 的 `BOOT_DURATION_MS` 与 `mountBootAnimation()` 附近；想关闭可执行 `localStorage.setItem("dsh-theme-boot-disabled","1")`，想重播可清 `sessionStorage` 的 `dsh-theme-boot-v3-played`。
 - **深色模式**：浅色/深色都有完整配色；设置里切换外观后，侧栏、composer、HUD、Diff 抽屉与滑条能量层会一起变化。
 - **字体诊断**：在 DevTools 执行 `__dshClaudeThemeFontDebug()`，会打印平台、DPI、实际 `-webkit-font-smoothing`、实际字体栈，以及内嵌宋体是否加载成功（反馈字体问题请附上这段输出）。
 - **实时语音**：约 0.3s 一次增量转写，文本写入 composer 草稿；约 6s 无人声自动停止；停止后整段重转写。录音期间请求/提交会被官方输入锁保护；若草稿已有内容，实时文本会追加在当前纯文本后（富文本卡片/chip 可能被改写，建议空草稿使用）。

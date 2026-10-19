@@ -52,3 +52,30 @@
 - 关闭：`localStorage.setItem("dsh-theme-boot-disabled","1")`。
 - 已验证：截图 `preview-boot-animation.png`；`TEMP-` 探针已移除。
 - 待用户确认后再改：时长、每次启动/仅首次、画面元素、声音、是否要设置开关。
+
+## 当前实现（2026-10-19 晚，分支 feat/2.2.0）
+
+> 首版的 logo + 进度线方案已替换为"手写句子"方案。以下与代码一致。
+
+- 文案：第一行 `Hello,` 逐字写出（每字间隔 42ms，单字动画 400ms）；第二行 `can I do for you?`
+  整行淡入 + 上移（0.72s 起，0.52s 完成），不再逐字，避免"整行居中但只显示行首一个字母"的错位。
+- 时序（从 HTML 解析起算）：第一行 0–0.65s；第二行 0.72–1.24s；横线 1.05–1.65s；
+  底部提示 1.0–1.3s；幕布 2.39s 开始淡出，2.75s 完全透明。
+- 两个半屏：
+  - Host 半（`index.js` 的 `BOOT_BODY`）：注入 `index.html` 的 body 开头，首帧先于宿主 boot card 绘制。
+  - Client 半（`client.js` 的 `mountBootAnimation()`）：仅当 Host 注入缺失时自建幕布；
+    Host 幕布异常驻留时兜底移除。
+- **收尾不可依赖内联脚本**：注入路径下 `<script>` 实际可能不执行，
+  因此幕布淡出由纯 CSS 的 `dsh-boot-curtain` keyframes 完成；`index.js` 的内联脚本只作为加速器
+  （点击 / Esc / Enter / 空格立即跳过）。
+- 时长常量：`client.js` 的 `BOOT_DURATION_MS = 2400`；`index.js` 的 `holdMs = 2400`；
+  `prefers-reduced-motion: reduce` 时为 900。
+- 触发：每个 renderer 窗口第一次加载（`sessionStorage` 键 `dsh-theme-boot-v3-played`）。
+- 关闭：`localStorage.setItem("dsh-theme-boot-disabled","1")`。
+- 淡出分两段：文字层 0.14s 先消失，背景再 0.32s 淡出，避免"幽灵文字"叠在已加载的首页上。
+- 实测（1294×829 窗口，录屏抽帧）：窗口出现时第一行已在书写、0.2s 内补完；第二行 0.8s 出现；
+  1.2s 完整画面停留；2.4s 起淡出，2.8s 进入应用。无空白帧、无单字符孤悬、无残影。
+- 已知限制：
+  - **全屏覆盖做不到**：注入只能覆盖当前 BrowserWindow 的可视区。要真全屏需要独立 splash
+    窗口或开机时最大化主窗口，属应用级改造，不在插件范围内。
+  - 若窗口映射明显晚于动画起点，用户会看到第一行的后半段（不会出现空白屏）。
