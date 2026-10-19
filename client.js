@@ -622,7 +622,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       // live, so only hide the legacy dock stats — never the whole activity row.
       `.Gyyz9a_triggerAnchor{flex:none;display:inline-flex;align-items:center}`,
       `html[data-dsh-realtime-voice="1"] .Gyyz9a_triggerAnchor{display:none!important}`,
-      `.dsh-live-voice-wrap{display:inline-flex;align-items:center;gap:4px;flex:none}`,
+      `.dsh-live-voice-wrap{display:inline-flex;align-items:center;gap:4px;flex:none;order:999}`,
       `.dsh-live-voice{position:relative;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#7f7869;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease,color .15s ease}`,
       `.dsh-live-voice:hover{background:rgba(218,119,86,.10);color:#da7756}`,
       `body[data-ds-dark-theme] .dsh-live-voice{color:#b9b0a2}`,
@@ -4813,7 +4813,14 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       const readComposerText = () => {
         const editor = document.querySelector('.RlGAzG_card [contenteditable="true"]')
         if (editor === null) return ''
-        return (editor.innerText ?? '').replace(/\u200b/g, '')
+        // Lexical's contenteditable innerText carries trailing/duplicate line
+        // breaks; feeding those back makes the composer grow on every recording.
+        return (editor.innerText ?? '')
+          .replace(/\u200b/g, '')
+          .replace(/\r/g, '')
+          .replace(/\n+/g, '\n')
+          .replace(/^\n+/, '')
+          .replace(/\n+$/, '')
       }
 
       function RealtimeVoiceButton(props) {
@@ -4823,10 +4830,12 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         const [error, setError] = React.useState('')
         const sessionRef = React.useRef(null)
 
-        const applyDraft = (text) => {
+        const applyDraft = (text, session) => {
           if (inputActions === undefined || typeof inputActions.setDraft !== 'function') return
+          if (session !== undefined && session !== null && session.lastApplied === text) return
           try {
             inputActions.setDraft(text)
+            if (session !== undefined && session !== null) session.lastApplied = text
           } catch {
             // The composer may be submitting; skip this tick.
           }
@@ -4842,7 +4851,6 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           try { session.gain.disconnect() } catch { /* ignore */ }
           session.stream.getTracks().forEach((track) => track.stop())
           if (session.audioContext.state !== 'closed') session.audioContext.close().catch(() => {})
-          document.documentElement.removeAttribute('data-dsh-realtime-voice')
         }
 
         const transcribeLatest = async (session) => {
@@ -4863,7 +4871,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
             const text = typeof result === 'string' ? result : (result?.text ?? result?.value?.text ?? '')
             if (sessionRef.current === session && typeof text === 'string' && text !== '') {
               session.lastText = text
-              applyDraft(session.base + text)
+              applyDraft(session.base + text, session)
             }
           } catch (reason) {
             if (sessionRef.current === session) {
@@ -4896,6 +4904,8 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
               sampleRate: audioContext.sampleRate,
               busy: false,
               lastText: '',
+              lastApplied: base,
+              lastVoiceAt: performance.now(),
               audioContext,
               source,
               processor,
@@ -4908,14 +4918,32 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
               const input = event.inputBuffer.getChannelData(0)
               session.chunks.push(new Float32Array(input))
               session.total += input.length
+              let energy = 0
+              for (let i = 0; i < input.length; i += 1) {
+                energy += input[i] * input[i]
+              }
+              const rms = Math.sqrt(energy / input.length)
+              if (rms > 0.018) session.lastVoiceAt = performance.now()
             }
             source.connect(processor)
             processor.connect(gain)
             gain.connect(audioContext.destination)
             session.timer = window.setInterval(() => {
-              setSeconds(Math.floor(session.total / session.sampleRate))
+              if (sessionRef.current !== session) return
+              const elapsed = session.total / session.sampleRate
+              setSeconds(Math.floor(elapsed))
+              // Auto-stop after ~5s without voice-level audio. If nothing at
+              // all has been recognized, stop after 6s even in a noisy room.
+              if (elapsed > 6 && session.lastText === '') {
+                stop()
+                return
+              }
+              if (elapsed > 1 && performance.now() - session.lastVoiceAt > 5000) {
+                stop()
+                return
+              }
               transcribeLatest(session)
-            }, 950)
+            }, 300)
             sessionRef.current = session
             document.documentElement.setAttribute('data-dsh-realtime-voice', '1')
             setRecording(true)
@@ -4941,7 +4969,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
             await new Promise((resolve) => window.setTimeout(resolve, 120))
           }
           try { await transcribeLatest(session) } catch { /* ignore */ }
-          if (session.lastText !== '') applyDraft(session.base + session.lastText)
+          if (session.lastText !== '') applyDraft(session.base + session.lastText, session)
           try { await session.audioContext.close() } catch { /* ignore */ }
           // Keep the official microphone hidden while this component stays mounted;
           // the attribute is cleared on unmount/dispose.
@@ -4954,7 +4982,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           if (session === null) return
           setRecording(false)
           disposeSession()
-          applyDraft(session.base)
+          applyDraft(session.base, session)
           setSeconds(0)
         }
 
