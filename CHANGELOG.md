@@ -5,6 +5,7 @@
 - 新增：对话框语音输入恢复并主题化——官方实验语音 Bundle 的麦克风重新可见，录音条、波形、圆按钮、脉冲全部换成奶油/陶土橙；未启用语音 Bundle 时优雅隐藏。
 - 新增：合并 `dsh-codex-effort-slider`（MIT）——模型菜单的「推理等级」行出现橙色能量滑条、暖色星尘与扫光，支持拖动、设置面板与减少动效；模型行描边也从紫色改为陶土橙；检测到独立插件时自动跳过，避免双滑条。
 - 修复：其他机器字体发糊——覆盖宿主 `-webkit-font-smoothing:antialiased` 为 `auto`，并内嵌 Noto Serif SC 的 GB2312 子集（OFL）作为 UI 衬线字体，不再回退到 Windows 宋体位图或不可控系统字体。
+- 新增：首版开机主题动画——暖米色幕布、陶土橙 logo、字标与进度线，1.7s 淡出，可点击/Enter/Esc 跳过，reduced-motion 静止；每窗口只播一次，可关闭。
 - 新增：`window.__dshClaudeThemeFontDebug()` 诊断入口，便于反馈平台、DPI、字体加载状态。
 - 修复：深色模式——去掉无条件强制浅色的 v1 硬覆盖，body/侧栏/composer/HUD/Diff 抽屉都随深浅色切换；语音与滑条的焦点/减少动效细节同步校正。
 

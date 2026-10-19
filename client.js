@@ -1183,6 +1183,90 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       }
     }
 
+    // ── Boot animation ──────────────────────────────────────────────────────
+    // A short branded curtain painted on the first frame of a window so the app
+    // never flashes a bare page. Plays once per renderer window (sessionStorage),
+    // exits on click / Esc / timeout, and respects reduced-motion. The visual is
+    // a first draft — the copy and timings are constants so they are easy to tune.
+    const BOOT_ONCE_KEY = 'dsh-theme-boot-played'
+    const BOOT_DISABLED_KEY = 'dsh-theme-boot-disabled'
+    const BOOT_DURATION_MS = 1700
+
+    function mountBootAnimation() {
+      if (window.sessionStorage.getItem(BOOT_ONCE_KEY) === '1') return () => {}
+      if (window.localStorage.getItem(BOOT_DISABLED_KEY) === '1') return () => {}
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+      const overlay = document.createElement('div')
+      overlay.id = 'dsh-boot-overlay'
+      overlay.setAttribute('role', 'status')
+      overlay.setAttribute('aria-label', 'Claude Code 桌面端主题')
+      overlay.innerHTML = `
+        <style>
+          #dsh-boot-overlay{position:fixed;inset:0;z-index:2147483600;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f5f3ee;color:#1d1b16;opacity:1;transition:opacity .26s ease;overflow:hidden;font-family:"DSH Serif UI","思源宋体 VF","Source Han Serif","Noto Serif SC","Microsoft YaHei",sans-serif;user-select:none}
+          body[data-ds-dark-theme] #dsh-boot-overlay{background:#24221f;color:#ece7dd}
+          #dsh-boot-overlay[data-leaving="1"]{opacity:0;pointer-events:none}
+          #dsh-boot-overlay .dsh-boot-mark{width:88px;height:88px;opacity:0;filter:drop-shadow(0 18px 30px rgba(29,27,22,.16))}
+          #dsh-boot-overlay .dsh-boot-title{margin-top:22px;font-size:30px;line-height:1.3;font-weight:500;letter-spacing:.02em;opacity:0}
+          #dsh-boot-overlay .dsh-boot-sub{margin-top:10px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#7f7869;opacity:0}
+          #dsh-boot-overlay .dsh-boot-line{margin-top:26px;width:92px;height:2px;border-radius:2px;background:#da7756;transform:scaleX(0);transform-origin:center}
+          #dsh-boot-overlay .dsh-boot-hint{position:absolute;bottom:46px;font-size:11px;letter-spacing:.08em;color:#9a9080;opacity:0;transition:opacity .3s ease .7s}
+          #dsh-boot-overlay[data-ready="1"] .dsh-boot-mark{animation:dsh-boot-mark .55s cubic-bezier(.16,1,.3,1) both}
+          #dsh-boot-overlay[data-ready="1"] .dsh-boot-title{animation:dsh-boot-rise .5s cubic-bezier(.16,1,.3,1) .18s both}
+          #dsh-boot-overlay[data-ready="1"] .dsh-boot-sub{animation:dsh-boot-rise .5s cubic-bezier(.16,1,.3,1) .28s both}
+          #dsh-boot-overlay[data-ready="1"] .dsh-boot-line{animation:dsh-boot-line .55s cubic-bezier(.16,1,.3,1) .34s both}
+          #dsh-boot-overlay[data-ready="1"] .dsh-boot-hint{opacity:.85}
+          #dsh-boot-overlay[data-leaving="1"] .dsh-boot-mark,#dsh-boot-overlay[data-leaving="1"] .dsh-boot-title,#dsh-boot-overlay[data-leaving="1"] .dsh-boot-sub,#dsh-boot-overlay[data-leaving="1"] .dsh-boot-line{transition:opacity .2s ease;opacity:0}
+          @keyframes dsh-boot-mark{from{opacity:0;transform:scale(.86) rotate(-16deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+          @keyframes dsh-boot-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+          @keyframes dsh-boot-line{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+          @media (prefers-reduced-motion: reduce){
+            #dsh-boot-overlay .dsh-boot-mark,#dsh-boot-overlay .dsh-boot-title,#dsh-boot-overlay .dsh-boot-sub,#dsh-boot-overlay .dsh-boot-line{opacity:1;animation:none!important;transform:none!important;transition:none}
+            #dsh-boot-overlay .dsh-boot-hint{opacity:.85;transition:none}
+          }
+        </style>
+        <svg class="dsh-boot-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <rect x="4" y="4" width="56" height="56" rx="14" fill="#f5f3ee"/>
+          <g fill="#da7756">
+            <rect x="29.5" y="14" width="5" height="36" rx="2.5"/>
+            <rect x="29.5" y="14" width="5" height="36" rx="2.5" transform="rotate(60 32 32)"/>
+            <rect x="29.5" y="14" width="5" height="36" rx="2.5" transform="rotate(120 32 32)"/>
+          </g>
+          <circle cx="32" cy="32" r="6" fill="#1d1b16"/>
+        </svg>
+        <div class="dsh-boot-title">Claude Code 桌面端主题</div>
+        <div class="dsh-boot-sub">DeepSeek Harness</div>
+        <div class="dsh-boot-line"></div>
+        <div class="dsh-boot-hint">点击任意处跳过</div>
+      `
+      document.body.appendChild(overlay)
+      try {
+        window.sessionStorage.setItem(BOOT_ONCE_KEY, '1')
+      } catch {
+        // Private mode: play on every load is preferable to crashing.
+      }
+      let finished = false
+      const finish = () => {
+        if (finished) return
+        finished = true
+        overlay.dataset.leaving = '1'
+        window.setTimeout(() => overlay.remove(), 280)
+      }
+      const timer = window.setTimeout(finish, reduced ? 900 : BOOT_DURATION_MS)
+      const onKey = (event) => {
+        if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') finish()
+      }
+      overlay.addEventListener('click', finish)
+      window.addEventListener('keydown', onKey)
+      window.requestAnimationFrame(() => {
+        overlay.dataset.ready = '1'
+      })
+      return () => {
+        window.clearTimeout(timer)
+        window.removeEventListener('keydown', onKey)
+        overlay.remove()
+      }
+    }
+
     /**
      * Mount the HUD tray below every composer card and tick the cache
      * countdown. The tray is a sibling of the card, so it never changes the
@@ -4861,6 +4945,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
               return () => {}
             }
           }
+          const unmountBoot = unmountOf(mountBootAnimation, 'boot animation')
           const unmountStatus = unmountOf(mountSessionStatus, 'session status dots')
           const unmountHeroCard = unmountOf(mountHeroDashboardCard, 'hero dashboard card')
           const unmountHeroMenus = unmountOf(mountHeroMenusUpward, 'hero menus upward')
@@ -4876,6 +4961,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           if (snapshot.preference === 'system') ctx.theme.setTheme('light')
 
           return () => {
+            unmountBoot()
             unmountDiff()
             unmountHeroMenus()
             unmountHeroCard()
@@ -4923,6 +5009,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           return rows
         }
         window.__dshClaudeThemeStatusDebug = debugStatusDots
+
 
 
 

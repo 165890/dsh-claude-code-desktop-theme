@@ -1,4 +1,4 @@
-# 开机主题动画 — 需求与实现草案（待规格确认）
+# 开机主题动画 — 首版已实现（待用户微调）
 
 > 用户表示会补充具体规格；本文先固定技术边界与待定项，避免实现后返工。
 
@@ -40,3 +40,15 @@
   但首帧仍需 CSS 背景兜底。
 - 回归项：冷启动、热刷新、禁用再启用、reduced-motion、深色、低端机（动画帧率）、
   恢复错误页不遮挡。
+
+
+## 首版实现（2026-10-19）
+
+- 位置：`client.js` 的 `mountBootAnimation()`；常量 `BOOT_DURATION_MS = 1700`。
+- 视觉：暖米色全屏（深色 `#24221f`）、陶土橙 logo 方块、`Claude Code 桌面端主题`、
+  `DEEPSEEK HARNESS`、橙色进度线、底部「点击任意处跳过」。
+- 触发：每个 renderer 窗口第一次加载（`sessionStorage` 键 `dsh-theme-boot-played`）。
+- 退出：点击 / Enter / Esc / 1.7s 超时；280ms 淡出；`prefers-reduced-motion` 时 0.9s 并静止。
+- 关闭：`localStorage.setItem("dsh-theme-boot-disabled","1")`。
+- 已验证：截图 `preview-boot-animation.png`；`TEMP-` 探针已移除。
+- 待用户确认后再改：时长、每次启动/仅首次、画面元素、声音、是否要设置开关。
