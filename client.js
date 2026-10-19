@@ -622,13 +622,13 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       // live, so only hide the legacy dock stats — never the whole activity row.
       `.Gyyz9a_triggerAnchor{flex:none;display:inline-flex;align-items:center}`,
       `html[data-dsh-realtime-voice="1"] .Gyyz9a_triggerAnchor{display:none!important}`,
-      `.dsh-live-voice-wrap{display:inline-flex;align-items:center;gap:4px;flex:none;order:999}`,
+      `.dsh-live-voice-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;order:999}`,
       `.dsh-live-voice{position:relative;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#7f7869;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .2s ease,color .2s ease,transform .2s ease}`,
       `.dsh-live-voice:hover{background:rgba(218,119,86,.10);color:#da7756}`,
       `body[data-ds-dark-theme] .dsh-live-voice{color:#b9b0a2}`,
       `.dsh-live-voice[data-recording="true"]{background:#da7756;color:#fff8f3;transform:scale(1.04);animation:dsh-live-voice-pulse 1.5s ease-in-out infinite}`,
       `.dsh-live-voice-dot{position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:#fff8f3;box-shadow:0 0 0 2px rgba(218,119,86,.5)}`,
-      `.dsh-live-voice-cancel{width:20px;height:20px;padding:0;border:0;border-radius:50%;background:rgba(29,27,22,.08);color:#7f7869;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}`,
+      `.dsh-live-voice-cancel{position:absolute;left:-24px;top:5px;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 1px 4px rgba(29,27,22,.18);color:#7f7869;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}`,
       `.dsh-live-voice-cancel:hover{background:rgba(218,119,86,.18);color:#da7756}`,
       `@keyframes dsh-live-voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(218,119,86,.28)}50%{box-shadow:0 0 0 5px rgba(218,119,86,.10)}}`,
       `@media (prefers-reduced-motion:reduce){.dsh-live-voice[data-recording="true"]{animation:none!important}}`,
@@ -5389,6 +5389,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           return rows
         }
         window.__dshClaudeThemeStatusDebug = debugStatusDots
+
 
 
 
