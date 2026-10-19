@@ -4975,6 +4975,19 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
               if (sessionRef.current !== session) return
               const elapsed = session.total / session.sampleRate
               setSeconds(Math.floor(elapsed))
+              // If the user edited the draft by hand mid-recording, never
+              // overwrite their edit with the next transcript slice.
+              const currentText = readComposerText()
+              const revealed = (session.revealedText ?? '').replace(/\s+$/, '')
+              if (currentText !== '' && revealed !== '' && currentText !== revealed) {
+                stop()
+                return
+              }
+              // Hard cap so a noisy room cannot record forever.
+              if (elapsed > 60) {
+                stop()
+                return
+              }
               // Auto-stop after ~5s without voice-level audio. If nothing at
               // all has been recognized, stop after 6s even in a noisy room.
               if (elapsed > 6 && session.lastText === '') {
