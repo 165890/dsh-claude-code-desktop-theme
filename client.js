@@ -623,10 +623,10 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       `.Gyyz9a_triggerAnchor{flex:none;display:inline-flex;align-items:center}`,
       `html[data-dsh-realtime-voice="1"] .Gyyz9a_triggerAnchor{display:none!important}`,
       `.dsh-live-voice-wrap{display:inline-flex;align-items:center;gap:4px;flex:none;order:999}`,
-      `.dsh-live-voice{position:relative;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#7f7869;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease,color .15s ease}`,
+      `.dsh-live-voice{position:relative;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#7f7869;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .2s ease,color .2s ease,transform .2s ease}`,
       `.dsh-live-voice:hover{background:rgba(218,119,86,.10);color:#da7756}`,
       `body[data-ds-dark-theme] .dsh-live-voice{color:#b9b0a2}`,
-      `.dsh-live-voice[data-recording="true"]{background:#da7756;color:#fff8f3;animation:dsh-live-voice-pulse 1.5s ease-in-out infinite}`,
+      `.dsh-live-voice[data-recording="true"]{background:#da7756;color:#fff8f3;transform:scale(1.04);animation:dsh-live-voice-pulse 1.5s ease-in-out infinite}`,
       `.dsh-live-voice-dot{position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:#fff8f3;box-shadow:0 0 0 2px rgba(218,119,86,.5)}`,
       `.dsh-live-voice-cancel{width:20px;height:20px;padding:0;border:0;border-radius:50%;background:rgba(29,27,22,.08);color:#7f7869;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}`,
       `.dsh-live-voice-cancel:hover{background:rgba(218,119,86,.18);color:#da7756}`,
@@ -4830,15 +4830,55 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         const [error, setError] = React.useState('')
         const sessionRef = React.useRef(null)
 
-        const applyDraft = (text, session) => {
+        const commitDraft = (session, text) => {
           if (inputActions === undefined || typeof inputActions.setDraft !== 'function') return
-          if (session !== undefined && session !== null && session.lastApplied === text) return
+          if (session !== undefined && session !== null && session.revealedText === text) return
           try {
             inputActions.setDraft(text)
-            if (session !== undefined && session !== null) session.lastApplied = text
+            if (session !== undefined && session !== null) session.revealedText = text
           } catch {
             // The composer may be submitting; skip this tick.
           }
+        }
+
+        // Smooth the block-level transcribe results into a typewriter reveal so
+        // the draft grows a few characters at a time instead of jumping a whole
+        // phrase at once (the speech Remote has no token stream).
+        const applyDraft = (text, session, immediate = false) => {
+          if (inputActions === undefined || typeof inputActions.setDraft !== 'function') return
+          if (session === undefined || session === null) {
+            commitDraft(session, text)
+            return
+          }
+          session.targetText = text
+          const current = session.revealedText ?? session.base ?? ''
+          if (immediate || !text.startsWith(current)) {
+            if (session.revealTimer) {
+              window.clearInterval(session.revealTimer)
+              session.revealTimer = 0
+            }
+            commitDraft(session, text)
+            return
+          }
+          if (text === current) return
+          if (session.revealTimer) return
+          session.revealTimer = window.setInterval(() => {
+            const revealed = session.revealedText ?? ''
+            const target = session.targetText ?? ''
+            if (revealed === target) {
+              window.clearInterval(session.revealTimer)
+              session.revealTimer = 0
+              return
+            }
+            if (!target.startsWith(revealed)) {
+              window.clearInterval(session.revealTimer)
+              session.revealTimer = 0
+              commitDraft(session, target)
+              return
+            }
+            const step = Math.min(2, target.length - revealed.length)
+            commitDraft(session, revealed + target.slice(revealed.length, revealed.length + step))
+          }, 22)
         }
 
         const disposeSession = () => {
@@ -4846,6 +4886,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           if (session === null) return
           sessionRef.current = null
           window.clearInterval(session.timer)
+          if (session.revealTimer) window.clearInterval(session.revealTimer)
           try { session.processor.disconnect() } catch { /* ignore */ }
           try { session.source.disconnect() } catch { /* ignore */ }
           try { session.gain.disconnect() } catch { /* ignore */ }
@@ -4904,7 +4945,9 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
               sampleRate: audioContext.sampleRate,
               busy: false,
               lastText: '',
-              lastApplied: base,
+              revealedText: base,
+              targetText: base,
+              revealTimer: 0,
               lastVoiceAt: performance.now(),
               audioContext,
               source,
@@ -4969,7 +5012,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
             await new Promise((resolve) => window.setTimeout(resolve, 120))
           }
           try { await transcribeLatest(session) } catch { /* ignore */ }
-          if (session.lastText !== '') applyDraft(session.base + session.lastText, session)
+          if (session.lastText !== '') applyDraft(session.base + session.lastText, session, true)
           try { await session.audioContext.close() } catch { /* ignore */ }
           // Keep the official microphone hidden while this component stays mounted;
           // the attribute is cleared on unmount/dispose.
@@ -4982,7 +5025,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           if (session === null) return
           setRecording(false)
           disposeSession()
-          applyDraft(session.base, session)
+          applyDraft(session.base, session, true)
           setSeconds(0)
         }
 
