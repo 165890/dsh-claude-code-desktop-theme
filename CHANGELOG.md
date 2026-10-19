@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.5.0
+## 2.5.1
 
 - 重做开机主题动画：暖米色幕布 + `Hello,` / `can I do for you?` 手写逐字动画。Host 在 `index.html` body 首帧注入并隐藏 Harness 自带 boot card，Client 保留兜底；点击 / Esc / Enter / 空格可跳过。
 - 修复：启动动画文字原先会被主题全局 `body *` 字体规则强制覆盖，播放中途换字体；现在动画字体单独锁定。
