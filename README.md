@@ -24,6 +24,10 @@ A Claude Code desktop-style theme for the **DeepSeek Harness** Web GUI, plus the
 
 ![Chat](preview-skeleton-chat.png)
 
+![Effort slider](preview-effort-slider.png)
+
+![Voice input](preview-voice-input.png)
+
 ## 安装
 
 ### 方式一：DSH 插件管理（推荐）
