@@ -79,6 +79,7 @@ pnpm add link:/path/to/dsh-claude-code-desktop-theme
 - **数据来源**：上下文占用、缓存命中率与实时 `tok/s` 直接来自宿主 `contextPressure` / `tokenUsage` / `sessionStats` 投影，会话开始后立即显示，不依赖任何第三方信息栏插件。
 - **本次花费**：若已安装 [dsh-bottom-info-bar](https://github.com/songoao25/dsh-bottom-info-bar) 并启用其账本，优先显示实扣金额；未安装时按真实 token 用量 × 内置 DeepSeek 官方价目表估算（悬停可见提示），未收录的模型显示 `—`，不伪造数字。
 - **余额**：先立即显示上次成功读取的余额缓存，再在账户服务返回后刷新为实时值；未登录 DeepSeek 账户时显示 `—`。
+- **深色模式**：浅色/深色都有完整配色；设置里切换外观后，侧栏、composer、HUD、Diff 抽屉与滑条能量层会一起变化。
 - **字体诊断**：在 DevTools 执行 `__dshClaudeThemeFontDebug()`，会打印平台、DPI、实际 `-webkit-font-smoothing`、实际字体栈，以及内嵌宋体是否加载成功（反馈字体问题请附上这段输出）。
 - **语音输入**：录音/转写由 DSH 官方语音子系统完成，主题只负责入口与视觉；切换会话、隐藏窗口、取消录音都会释放麦克风，权限被拒绝时显示官方错误提示。
 - **推理等级滑条**：拖动时即时写回官方档位，松手立即落地；找不到官方菜单锚点或会话作用域未就绪时 fail-open，不影响官方菜单。

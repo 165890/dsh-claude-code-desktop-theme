@@ -521,6 +521,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     }
 
     const LIGHT = 'body:not([data-ds-dark-theme])'
+    const DARK = 'body[data-ds-dark-theme]'
 
     // ── Embedded hero serif ─────────────────────────────────────────────────
     // This Electron renderer resolves locally installed Latin families such as
@@ -684,27 +685,38 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       `html,body{font-family:"DSH Serif UI","思源宋体 VF","Source Han Serif","Noto Serif SC","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif!important;font-synthesis:none!important}`,
       `body,body *{font-family:"DSH Serif UI","思源宋体 VF","Source Han Serif","Noto Serif SC","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif!important}`,
       `code,code *,pre,pre *,kbd,kbd *,samp,samp *,.shiki,.shiki *,.dsh-composer-tray,.dsh-composer-tray *,.dsh-diff-badge,.dsh-diff-badge *,.dsh-review-drawer,.dsh-review-drawer *{font-family:"SF Mono","Consolas",monospace!important}`,
-      `body{background-color:#f5f3ee!important;color:#1d1b16!important}`,
-      `._2H3hWW_root{background:#f5f3ee!important}`,
-      `.RlGAzG_card{background:#f5f3ee!important}`,
-      `.dsh-composer-tray{color:#7f7869!important}`,
-      `.dsh-hud-value,.dsh-hud-agent-label,.dsh-hud-context-label{color:#1d1b16!important}`,
-      `.dsh-hud-ring-track{stroke:#e3ddd1!important}`,
-      `.dsh-hud-ring-progress{stroke:#da7756!important}`,
+      `${LIGHT}{background-color:#f5f3ee!important;color:#1d1b16!important}`,
+      `${DARK}{background-color:#24221f!important;color:#ece7dd!important}`,
+      `${LIGHT} ._2H3hWW_root{background:#f5f3ee!important}`,
+      `${DARK} ._2H3hWW_root{background:#24221f!important}`,
+      `${LIGHT} .RlGAzG_card{background:#f5f3ee!important}`,
+      `${DARK} .RlGAzG_card{background:#2b2825!important}`,
+      `${LIGHT} .dsh-composer-tray{color:#7f7869!important}`,
+      `${DARK} .dsh-composer-tray{color:#9a9285!important}`,
+      `${LIGHT} .dsh-hud-value,${LIGHT} .dsh-hud-agent-label,${LIGHT} .dsh-hud-context-label{color:#1d1b16!important}`,
+      `${DARK} .dsh-hud-value,${DARK} .dsh-hud-agent-label,${DARK} .dsh-hud-context-label{color:#ece7dd!important}`,
+      `${LIGHT} .dsh-hud-ring-track{stroke:#e3ddd1!important}`,
+      `${DARK} .dsh-hud-ring-track{stroke:#4a443c!important}`,
+      `${LIGHT} .dsh-hud-ring-progress{stroke:#da7756!important}`,
+      `${DARK} .dsh-hud-ring-progress{stroke:#e8a184!important}`,
       `.dsh-hud-agent-dot{background:#da7756!important}`,
-      `.dsh-diff-badge{background:#ece7dd!important}`,
+      `${LIGHT} .dsh-diff-badge{background:#ece7dd!important}`,
+      `${DARK} .dsh-diff-badge{background:#3a3732!important}`,
       `.dsh-diff-add{color:#00c853!important}`,
       `.dsh-diff-del{color:#ff5f38!important}`,
       `.dsh-diff-line[data-kind="add"]{background:#00c853!important;color:#1d1b16!important}`,
       `.dsh-diff-line[data-kind="del"]{background:#ff5f38!important;color:#1d1b16!important}`,
       `.dsh-diff-line[data-kind="meta"]{color:#7f7869!important}`,
-      `.dsh-review-drawer,.dsh-review-body,.dsh-review-preview{background-color:#f5f3ee!important;color:#1d1b16!important}`,
-      `.dsh-review-head{background:#ece7dd!important}`,
-      `.dsh-review-title,.dsh-review-close{color:#1d1b16!important}`,
+      `${LIGHT} .dsh-review-drawer,${LIGHT} .dsh-review-body,${LIGHT} .dsh-review-preview{background-color:#f5f3ee!important;color:#1d1b16!important}`,
+      `${DARK} .dsh-review-drawer,${DARK} .dsh-review-body,${DARK} .dsh-review-preview{background-color:#24221f!important;color:#ece7dd!important}`,
+      `${LIGHT} .dsh-review-head{background:#ece7dd!important}`,
+      `${DARK} .dsh-review-head{background:#3a3732!important}`,
+      `${LIGHT} .dsh-review-title,${LIGHT} .dsh-review-close{color:#1d1b16!important}`,
+      `${DARK} .dsh-review-title,${DARK} .dsh-review-close{color:#ece7dd!important}`,
       `.hIlkoa_sessionRow[data-dsh-status="waiting"] .hIlkoa_slot::before{background:#da7756!important;opacity:1!important}`,
       `.hIlkoa_sessionRow[data-dsh-status="idle"] .hIlkoa_slot::before{background:#7f7869!important;opacity:.5!important}`,
       `${LIGHT} .Hqq-bq_headline,${LIGHT} .Hqq-bq_titleGroup>span:not([class]){font-family:"DSH Serif UI","思源宋体 VF","Source Han Serif","Noto Serif SC",sans-serif!important;color:#1d1b16!important}`,
-      `body[data-ds-dark-theme] .Hqq-bq_headline,body[data-ds-dark-theme] .Hqq-bq_titleGroup>span:not([class]){font-family:"DSH Serif UI","思源宋体 VF","Source Han Serif","Noto Serif SC",sans-serif!important}`,
+      `body[data-ds-dark-theme] .Hqq-bq_headline,body[data-ds-dark-theme] .Hqq-bq_titleGroup>span:not([class]){font-family:"DSH Serif UI","思源宋体 VF","Source Han Serif","Noto Serif SC",sans-serif!important;color:#f0ede4!important}`,
     ].join('\n')
 
     // ── Real session status layer ───────────────────────────────────────────
@@ -4906,6 +4918,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           return rows
         }
         window.__dshClaudeThemeStatusDebug = debugStatusDots
+
 
         // Font-rendering diagnostics for issue reports: which platform, DPI,
         // computed smoothing and whether the embedded UI serif actually loaded.
