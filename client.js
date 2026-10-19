@@ -2080,6 +2080,11 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
       // State colors (semanticColors from the spec)
       '--dsw-alias-state-business-primary': both(ACCENT),
+      // The official menu row paints a focus ring when the merged effort
+      // slider is interacted with; keep it on the theme accent (host default
+      // is violet).
+      '--dsw-focus-ring-color': pair(ACCENT, '#e8a184'),
+      '--dsw-focus-ring-width': both('2px'),
       '--dsw-alias-state-business-tertiary': pair('#f4e0d5', '#4a352b'),
       '--dsw-alias-state-success-primary': pair('#009c3f', '#37d06c'),
       '--dsw-alias-state-success-secondary': both('#00c853'),
@@ -3886,7 +3891,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       React.useEffect(function () {
         if (host === null || !host.row || !host.row.style) return;
         host.row.style.boxShadow = energyOn
-          ? "inset 0 0 0 1px rgba(168,85,247," + (0.16 + 0.34 * energy).toFixed(2) + ")"
+          ? "inset 0 0 0 1px rgba(218,119,86," + (0.16 + 0.34 * energy).toFixed(2) + ")"
           : "";
       }, [host, energyOn, energy]);
 
