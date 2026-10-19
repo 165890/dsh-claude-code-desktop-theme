@@ -1,4 +1,4 @@
-# 2.2.1 稳定性检查清单
+# 2.5.0 稳定性检查清单
 
 > 每次发版前按此表跑一遍；记录日期、机器、缩放与异常。开发记录见 `task_plan.md`（本地）。
 
@@ -19,7 +19,7 @@ npm pack --dry-run     # 包内容 / 体积
 ```
 
 - [x] `npm run check` 通过
-- [x] `npm pack --dry-run`：2.2.1、23 files、packed ≈4.8 MB / unpacked ≈6.0 MB
+- [x] `npm pack --dry-run`：2.5.0、23 files、packed ≈4.8 MB / unpacked ≈6.0 MB
 - [x] `client.js` 中无 `TEMP-` 调试探针
 
 ## 主题与字体
