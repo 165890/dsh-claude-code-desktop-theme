@@ -1,7 +1,7 @@
 {
   "name": "dsh-claude-code-desktop-theme",
-  "version": "2.1.5",
-  "description": "Claude Code desktop look for the DeepSeek Harness Web GUI: warm cream surfaces, terracotta accent, serif interface, Absolutely code palette, real session status dots, composer HUD, diff review drawer and the merged usage overview card.",
+  "version": "2.2.0",
+  "description": "Claude Code desktop look for the DeepSeek Harness Web GUI: warm cream surfaces, terracotta accent, embedded serif UI, composer HUD + voice input, diff review drawer, usage overview and a themed reasoning-effort slider.",
   "type": "module",
   "exports": {
     ".": "./index.js",
@@ -15,7 +15,8 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
-    "assets/*",
+    "assets/OFL.txt",
+    "assets/hero-serif-subset.ttf",
     "preview*.png",
     "README.md",
     "docs/*.md"
@@ -41,7 +42,10 @@
     "claude",
     "desktop",
     "plugin",
-    "usage-overview"
+    "usage-overview",
+    "voice-input",
+    "reasoning-effort",
+    "effort-slider"
   ],
   "publishConfig": {
     "access": "public"
