@@ -18,7 +18,7 @@ A Claude Code desktop-style theme for the **DeepSeek Harness** Web GUI, plus the
 - **Composer HUD**：输入框下方显示真实的上下文占用、缓存命中率、本次花费与实时 tok/s（空闲自动显示 0 tok/s）；余额显示在侧栏底部账户行。
 - **Diff 微标 + 审查抽屉**：编辑/写入工具卡片右上角显示真实 `+N −M`，点击打开右侧审查抽屉查看真实 diff；无数据时显示空状态，不伪造内容。
 - **工作区 / 模式菜单向上展开**：首页的两个下拉菜单从触发器上方弹出，不会遮挡输入框。
-- **对话框语音输入**：恢复官方实验语音 Bundle 的麦克风入口，并主题化为陶土橙——录音条、波形、圆按钮、录音脉冲与深色模式一致；未启用语音 Bundle 或没有麦克风权限时自动隐藏、不留破 UI。
+- **对话框语音输入（实时转写）**：主题自带一颗麦克风——录音时约每 0.95s 把累计音频送到官方 `speech` Remote 转写，文字**边说边出现在输入框里**；停止后做一次整段转写替换最终结果，点 × 放弃。官方实验语音 Bundle 未启用时自动回退到官方麦克风；未授权/识别失败也会把官方入口还给用户。
 - **推理等级滑条（已合并）**：官方模型菜单里的「推理等级」行变成一条可拖动的连续滑条，最高档亮起奶油/陶土橙能量层、暖色星尘与扫光；原 `dsh-codex-effort-slider` 的算法、设置面板与 fail-open 行为完整保留，只换配色。已安装独立滑条插件时会自动跳过，避免双滑条。
 - **开机主题动画（首版）**：窗口首次加载时铺一张暖米色品牌幕布：陶土橙 logo、「Claude Code 桌面端主题 / DEEPSEEK HARNESS」字标、橙色进度线；约 1.7s 后淡出，点击/Enter/Esc 可跳过，`prefers-reduced-motion` 时静止淡出。默认每个窗口只播一次，可用 `localStorage.setItem("dsh-theme-boot-disabled","1")` 关闭。
 - **用量概览（已合并）**：会话/消息/token 统计、连续天数、高峰时段、常用模型（通过宿主模型目录解析真实展示名）与 26 周热力图；Host 汇总路由随主题插件一起提供。
@@ -28,6 +28,8 @@ A Claude Code desktop-style theme for the **DeepSeek Harness** Web GUI, plus the
 ![Effort slider](preview-effort-slider.png)
 
 ![Voice input](preview-voice-input.png)
+
+![Realtime voice](preview-realtime-voice.png)
 
 ![Boot animation](preview-boot-animation.png)
 
@@ -89,7 +91,8 @@ pnpm add link:/path/to/dsh-claude-code-desktop-theme
 - **开机动画**：视觉/时长常量在 `client.js` 的 `BOOT_DURATION_MS` 与 `mountBootAnimation()` 附近；想关闭可执行 `localStorage.setItem("dsh-theme-boot-disabled","1")`，想重播可清 `sessionStorage` 的 `dsh-theme-boot-played`。
 - **深色模式**：浅色/深色都有完整配色；设置里切换外观后，侧栏、composer、HUD、Diff 抽屉与滑条能量层会一起变化。
 - **字体诊断**：在 DevTools 执行 `__dshClaudeThemeFontDebug()`，会打印平台、DPI、实际 `-webkit-font-smoothing`、实际字体栈，以及内嵌宋体是否加载成功（反馈字体问题请附上这段输出）。
-- **语音输入**：录音/转写由 DSH 官方语音子系统完成，主题只负责入口与视觉；切换会话、隐藏窗口、取消录音都会释放麦克风，权限被拒绝时显示官方错误提示。
+- **实时语音**：约 0.95s 一次增量转写，文本写入 composer 草稿；停止后整段重转写。录音期间请求/提交会被官方输入锁保护；若草稿已有内容，实时文本会追加在当前纯文本后（富文本卡片/chip 可能被改写，建议空草稿使用）。
+- **语音输入**：录音/转写由 DSH 官方语音子系统完成；切换会话、隐藏窗口、取消录音都会释放麦克风，权限被拒绝时显示官方错误提示。
 - **推理等级滑条**：拖动时即时写回官方档位，松手立即落地；找不到官方菜单锚点或会话作用域未就绪时 fail-open，不影响官方菜单。
 - 卸载/禁用插件会自动撤销 Token 覆盖层、注入的 DOM、字体样式、滑条样式与所有监听器。
 

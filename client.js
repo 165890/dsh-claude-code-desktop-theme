@@ -621,6 +621,17 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       // the activity slot. That slot is also where the old activity row used to
       // live, so only hide the legacy dock stats — never the whole activity row.
       `.Gyyz9a_triggerAnchor{flex:none;display:inline-flex;align-items:center}`,
+      `html[data-dsh-realtime-voice="1"] .Gyyz9a_triggerAnchor{display:none!important}`,
+      `.dsh-live-voice-wrap{display:inline-flex;align-items:center;gap:4px;flex:none}`,
+      `.dsh-live-voice{position:relative;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#7f7869;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease,color .15s ease}`,
+      `.dsh-live-voice:hover{background:rgba(218,119,86,.10);color:#da7756}`,
+      `body[data-ds-dark-theme] .dsh-live-voice{color:#b9b0a2}`,
+      `.dsh-live-voice[data-recording="true"]{background:#da7756;color:#fff8f3;animation:dsh-live-voice-pulse 1.5s ease-in-out infinite}`,
+      `.dsh-live-voice-dot{position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:#fff8f3;box-shadow:0 0 0 2px rgba(218,119,86,.5)}`,
+      `.dsh-live-voice-cancel{width:20px;height:20px;padding:0;border:0;border-radius:50%;background:rgba(29,27,22,.08);color:#7f7869;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}`,
+      `.dsh-live-voice-cancel:hover{background:rgba(218,119,86,.18);color:#da7756}`,
+      `@keyframes dsh-live-voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(218,119,86,.28)}50%{box-shadow:0 0 0 5px rgba(218,119,86,.10)}}`,
+      `@media (prefers-reduced-motion:reduce){.dsh-live-voice[data-recording="true"]{animation:none!important}}`,
       `.Gyyz9a_trigger{width:30px;height:30px;padding:0;border-radius:999px;background:transparent!important;color:#7f7869!important;transition:background-color .15s ease,color .15s ease}`,
       `.Gyyz9a_trigger:hover:not(:disabled){background:rgba(218,119,86,.10)!important;color:#da7756!important}`,
       `.Gyyz9a_trigger:focus-visible{outline:2px solid rgba(218,119,86,.55)!important;outline-offset:2px}`,
@@ -4734,6 +4745,274 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     return module.exports;
     })()
 
+    // ── Real-time voice input ───────────────────────────────────────────────
+    // The official voice bundle records first and transcribes only on Stop. This
+    // button records the microphone itself, sends cumulative WAV chunks to the
+    // same `remote.speech.transcribe` endpoint about once a second and writes the
+    // live transcript into the composer draft through `inputActions.setDraft`.
+    // It is only mounted when the speech Remote is available; otherwise the
+    // official microphone stays visible and untouched.
+    const LIVE_VOICE_CLASS = 'dsh-live-voice'
+
+    function mountRealtimeVoice(ctx) {
+      let speech = null
+      try {
+        speech = ctx.remote?.speech ?? null
+      } catch {
+        speech = null
+      }
+      if (speech === null || typeof speech.transcribe !== 'function') return () => {}
+
+      let catalogPromise = null
+      const getCatalog = () => {
+        if (catalogPromise === null) {
+          catalogPromise = Promise.resolve()
+            .then(() => (typeof speech.catalog === 'function' ? speech.catalog() : null))
+            .catch(() => null)
+        }
+        return catalogPromise
+      }
+
+      const encodeWav = (chunks, sampleRate) => {
+        let length = 0
+        for (const chunk of chunks) length += chunk.length
+        const pcm = new Int16Array(length)
+        let offset = 0
+        for (const chunk of chunks) {
+          for (let i = 0; i < chunk.length; i += 1) {
+            const value = Math.max(-1, Math.min(1, chunk[i]))
+            pcm[offset] = value < 0 ? value * 0x8000 : value * 0x7fff
+            offset += 1
+          }
+        }
+        const buffer = new ArrayBuffer(44 + pcm.length * 2)
+        const view = new DataView(buffer)
+        const write = (pos, text) => {
+          for (let i = 0; i < text.length; i += 1) view.setUint8(pos + i, text.charCodeAt(i))
+        }
+        write(0, 'RIFF')
+        view.setUint32(4, 36 + pcm.length * 2, true)
+        write(8, 'WAVE')
+        write(12, 'fmt ')
+        view.setUint32(16, 16, true)
+        view.setUint16(20, 1, true)
+        view.setUint16(22, 1, true)
+        view.setUint32(24, sampleRate, true)
+        view.setUint32(28, sampleRate * 2, true)
+        view.setUint16(32, 2, true)
+        view.setUint16(34, 16, true)
+        write(36, 'data')
+        view.setUint32(40, pcm.length * 2, true)
+        new Int16Array(buffer, 44).set(pcm)
+        let binary = ''
+        const bytes = new Uint8Array(buffer)
+        for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i])
+        return btoa(binary)
+      }
+
+      const readComposerText = () => {
+        const editor = document.querySelector('.RlGAzG_card [contenteditable="true"]')
+        if (editor === null) return ''
+        return (editor.innerText ?? '').replace(/\u200b/g, '')
+      }
+
+      function RealtimeVoiceButton(props) {
+        const inputActions = props.inputActions
+        const [recording, setRecording] = React.useState(false)
+        const [seconds, setSeconds] = React.useState(0)
+        const [error, setError] = React.useState('')
+        const sessionRef = React.useRef(null)
+
+        const applyDraft = (text) => {
+          if (inputActions === undefined || typeof inputActions.setDraft !== 'function') return
+          try {
+            inputActions.setDraft(text)
+          } catch {
+            // The composer may be submitting; skip this tick.
+          }
+        }
+
+        const disposeSession = () => {
+          const session = sessionRef.current
+          if (session === null) return
+          sessionRef.current = null
+          window.clearInterval(session.timer)
+          try { session.processor.disconnect() } catch { /* ignore */ }
+          try { session.source.disconnect() } catch { /* ignore */ }
+          try { session.gain.disconnect() } catch { /* ignore */ }
+          session.stream.getTracks().forEach((track) => track.stop())
+          if (session.audioContext.state !== 'closed') session.audioContext.close().catch(() => {})
+          document.documentElement.removeAttribute('data-dsh-realtime-voice')
+        }
+
+        const transcribeLatest = async (session) => {
+          if (session.busy || session.chunks.length === 0) return
+          const duration = session.total / session.sampleRate
+          if (duration < 0.45) return
+          session.busy = true
+          try {
+            const audioBase64 = encodeWav(session.chunks, session.sampleRate)
+            const catalog = await getCatalog()
+            const selection = catalog?.selection ?? {}
+            const result = await speech.transcribe({
+              audioBase64,
+              audioSeconds: duration,
+              ...(typeof selection.providerId === 'string' ? { providerId: selection.providerId } : {}),
+              ...(typeof selection.language === 'string' ? { language: selection.language } : {}),
+            })
+            const text = typeof result === 'string' ? result : (result?.text ?? result?.value?.text ?? '')
+            if (sessionRef.current === session && typeof text === 'string' && text !== '') {
+              session.lastText = text
+              applyDraft(session.base + text)
+            }
+          } catch (reason) {
+            if (sessionRef.current === session) {
+              const message = reason instanceof Error ? reason.message : String(reason)
+              setError(message.slice(0, 80))
+            }
+          } finally {
+            session.busy = false
+          }
+        }
+
+        const start = async () => {
+          setError('')
+          const base = readComposerText()
+          try {
+            const catalog = await getCatalog()
+            if (catalog === null) throw new Error('语音识别不可用')
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+            })
+            const audioContext = new (window.AudioContext ?? window.webkitAudioContext)({ sampleRate: 16000 })
+            const source = audioContext.createMediaStreamSource(stream)
+            const processor = audioContext.createScriptProcessor(4096, 1, 1)
+            const gain = audioContext.createGain()
+            gain.gain.value = 0
+            const session = {
+              base,
+              chunks: [],
+              total: 0,
+              sampleRate: audioContext.sampleRate,
+              busy: false,
+              lastText: '',
+              audioContext,
+              source,
+              processor,
+              gain,
+              stream,
+              timer: 0,
+            }
+            processor.onaudioprocess = (event) => {
+              if (sessionRef.current !== session) return
+              const input = event.inputBuffer.getChannelData(0)
+              session.chunks.push(new Float32Array(input))
+              session.total += input.length
+            }
+            source.connect(processor)
+            processor.connect(gain)
+            gain.connect(audioContext.destination)
+            session.timer = window.setInterval(() => {
+              setSeconds(Math.floor(session.total / session.sampleRate))
+              transcribeLatest(session)
+            }, 950)
+            sessionRef.current = session
+            document.documentElement.setAttribute('data-dsh-realtime-voice', '1')
+            setRecording(true)
+            setSeconds(0)
+          } catch (reason) {
+            const message = reason instanceof Error ? reason.message : String(reason)
+            setError(message.slice(0, 80))
+            // Permission or speech failure: give the official microphone back.
+            document.documentElement.removeAttribute('data-dsh-realtime-voice')
+          }
+        }
+
+        const stop = async () => {
+          const session = sessionRef.current
+          if (session === null) return
+          setRecording(false)
+          window.clearInterval(session.timer)
+          try { session.processor.disconnect() } catch { /* ignore */ }
+          try { session.source.disconnect() } catch { /* ignore */ }
+          session.stream.getTracks().forEach((track) => track.stop())
+          // Wait for an in-flight chunk, then run one final full-audio pass.
+          for (let i = 0; i < 20 && session.busy; i += 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 120))
+          }
+          try { await transcribeLatest(session) } catch { /* ignore */ }
+          if (session.lastText !== '') applyDraft(session.base + session.lastText)
+          try { await session.audioContext.close() } catch { /* ignore */ }
+          // Keep the official microphone hidden while this component stays mounted;
+          // the attribute is cleared on unmount/dispose.
+          sessionRef.current = null
+          setSeconds(0)
+        }
+
+        const cancel = () => {
+          const session = sessionRef.current
+          if (session === null) return
+          setRecording(false)
+          disposeSession()
+          applyDraft(session.base)
+          setSeconds(0)
+        }
+
+        React.useEffect(() => {
+          let alive = true
+          getCatalog().then((catalog) => {
+            if (!alive) return
+            if (catalog === null) document.documentElement.removeAttribute('data-dsh-realtime-voice')
+            else document.documentElement.setAttribute('data-dsh-realtime-voice', '1')
+          })
+          return () => { alive = false }
+        }, [])
+        React.useEffect(() => () => disposeSession(), [])
+        const title = recording ? '停止并插入（点击 × 放弃）' : (error === '' ? '实时语音输入' : '语音输入错误：' + error)
+        return React.createElement(
+          'span',
+          { className: 'dsh-live-voice-wrap' },
+          React.createElement(
+            'button',
+            {
+              type: 'button',
+              className: LIVE_VOICE_CLASS,
+              'data-recording': recording ? 'true' : 'false',
+              title,
+              'aria-label': recording ? '停止实时语音输入' : '实时语音输入',
+              onClick: () => { if (recording) stop(); else start() },
+            },
+            React.createElement('svg', { width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+              React.createElement('rect', { x: 9, y: 3, width: 6, height: 12, rx: 3, fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }),
+              React.createElement('path', { d: 'M5 11a7 7 0 0 0 14 0M12 18v3', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' }),
+            ),
+            recording ? React.createElement('span', { className: 'dsh-live-voice-dot' }) : null,
+          ),
+          recording
+            ? React.createElement('button', {
+                type: 'button',
+                className: 'dsh-live-voice-cancel',
+                title: '放弃本次语音',
+                onClick: cancel,
+              }, '×')
+            : null,
+        )
+      }
+
+      const dispose = ctx.slots.inject('conversation.input.right', () =>
+        ctx.slots.register({
+          name: 'conversation.input.right',
+          id: 'dsh-theme-live-voice',
+          order: 45,
+          label: () => '实时语音输入',
+        }, RealtimeVoiceButton),
+      )
+      return () => {
+        try { dispose?.() } catch { /* ignore */ }
+        document.documentElement.removeAttribute('data-dsh-realtime-voice')
+      }
+    }
+
     return {
       inject: ['theme', 'slots', 'locale', 'remote'],
       apply(ctx) {
@@ -4776,6 +5055,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         } catch (error) {
           window.__dshUsageMergeError = String(error && error.stack ? error.stack : error)
         }
+
 
         // Mount the merged reasoning-effort slider. It waits for its own
         // services (sessions/modelDirectories) and stays out of the way when the
@@ -4946,6 +5226,21 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
             }
           }
           const unmountBoot = unmountOf(mountBootAnimation, 'boot animation')
+          const unmountLiveVoice = unmountOf(() => {
+            let innerDispose = () => {}
+            let scopeDispose = null
+            try {
+              scopeDispose = ctx.inject(['remote.speech'], (scope) => {
+                innerDispose = mountRealtimeVoice(scope)
+              })
+            } catch (error) {
+              console.warn('[dsh-claude-code-desktop-theme] real-time voice unavailable', error)
+            }
+            return () => {
+              try { innerDispose() } catch { /* ignore */ }
+              try { scopeDispose?.dispose?.() } catch { /* ignore */ }
+            }
+          }, 'real-time voice input')
           const unmountStatus = unmountOf(mountSessionStatus, 'session status dots')
           const unmountHeroCard = unmountOf(mountHeroDashboardCard, 'hero dashboard card')
           const unmountHeroMenus = unmountOf(mountHeroMenusUpward, 'hero menus upward')
@@ -4962,6 +5257,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
           return () => {
             unmountBoot()
+            unmountLiveVoice()
             unmountDiff()
             unmountHeroMenus()
             unmountHeroCard()
