@@ -57,7 +57,7 @@ npm pack --dry-run     # 包内容 / 体积
 - [x] 上下文 / 缓存命中 / 本次花费 / tok/s 显示正常
 - [x] 余额显示（登录账户）
 - [x] 空闲态 tok/s 为 0
-- [x] 无 bottom-info-bar 时按 token 估算显示（2.1.5 行为）
+- [x] 无 bottom-info-bar 时按 token 估算显示：实测 HUD `本次花费 ¥0.83`、余额正常、0 tok/s
 - [ ] 未收录模型时花费 `—`（需要切换第三方模型）
 
 ## 视觉回归
