@@ -47,25 +47,33 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           NAME=$(node -p "require('./package.json').name")
 
-          # A version that already sits in npm's staging area makes `npm publish`
-          # fail with 409. Approving that record is the only way forward, and it
-          # is also the right action: same version, same build intent.
-          STAGED_ID=$(npm stage list "$NAME" 2>/dev/null | awk -v want="$VERSION" '
-            /^id:/      { id=$2 }
-            /^version:/ { ver=$2 }
-            /^status:/  { if ($2 == "staged" && ver == want) print id }
-          ' | head -n 1)
-
-          if [ -n "${STAGED_ID:-}" ]; then
-            echo "::notice::Reusing staged build $STAGED_ID for $VERSION"
-            unset NODE_AUTH_TOKEN
-            npm stage approve "$STAGED_ID" \
-              || npm stage approve "$STAGED_ID" --//registry.npmjs.org/:_authToken="$FALLBACK_NPM_TOKEN"
+          # Publishing from the CLI and pushing a tag are two independent paths
+          # to the same version. If the version is already live (for example a
+          # local `npm run release` finished first), only align the tag and let
+          # the release job continue instead of failing the run with 409.
+          if npm view "$NAME@$VERSION" version 2>/dev/null | grep -qx "$VERSION"; then
+            echo "::notice::$VERSION is already published; skipping publish"
           else
-            unset NODE_AUTH_TOKEN
-            if ! npm publish --access public --provenance; then
-              echo "OIDC trusted publishing was not accepted; using NPM_TOKEN fallback."
-              npm publish --access public --provenance --//registry.npmjs.org/:_authToken="$FALLBACK_NPM_TOKEN"
+            # A version that already sits in npm's staging area makes
+            # `npm publish` fail with 409. Approving that record is the only way
+            # forward, and it is also the right action: same version, same build.
+            STAGED_ID=$(npm stage list "$NAME" 2>/dev/null | awk -v want="$VERSION" '
+              /^id:/      { id=$2 }
+              /^version:/ { ver=$2 }
+              /^status:/  { if ($2 == "staged" && ver == want) print id }
+            ' | head -n 1)
+
+            if [ -n "${STAGED_ID:-}" ]; then
+              echo "::notice::Reusing staged build $STAGED_ID for $VERSION"
+              unset NODE_AUTH_TOKEN
+              npm stage approve "$STAGED_ID" \
+                || npm stage approve "$STAGED_ID" --//registry.npmjs.org/:_authToken="$FALLBACK_NPM_TOKEN"
+            else
+              unset NODE_AUTH_TOKEN
+              if ! npm publish --access public --provenance; then
+                echo "OIDC trusted publishing was not accepted; using NPM_TOKEN fallback."
+                npm publish --access public --provenance --//registry.npmjs.org/:_authToken="$FALLBACK_NPM_TOKEN"
+              fi
             fi
           fi
 
