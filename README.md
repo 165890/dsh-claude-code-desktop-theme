@@ -7,7 +7,7 @@ A Claude Code desktop-style theme for the **DeepSeek Harness** Web GUI, plus the
 [![CI](https://github.com/165890/dsh-claude-code-desktop-theme/actions/workflows/ci.yml/badge.svg)](https://github.com/165890/dsh-claude-code-desktop-theme/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-claude-code-desktop-theme)](https://www.npmjs.com/package/dsh-claude-code-desktop-theme) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-![Hero](preview-skeleton-hero.png)
+![Hero](https://raw.githubusercontent.com/165890/dsh-claude-code-desktop-theme/main/preview-skeleton-hero.png)
 
 ## 功能
 
@@ -23,15 +23,15 @@ A Claude Code desktop-style theme for the **DeepSeek Harness** Web GUI, plus the
 - **开机主题动画（首版）**：窗口首次加载时铺一张暖米色品牌幕布：陶土橙 logo、「Claude Code 桌面端主题 / DEEPSEEK HARNESS」字标、橙色进度线；约 1.7s 后淡出，点击/Enter/Esc 可跳过，`prefers-reduced-motion` 时静止淡出。默认每个窗口只播一次，可用 `localStorage.setItem("dsh-theme-boot-disabled","1")` 关闭。
 - **用量概览（已合并）**：会话/消息/token 统计、连续天数、高峰时段、常用模型（通过宿主模型目录解析真实展示名）与 26 周热力图；Host 汇总路由随主题插件一起提供。
 
-![Chat](preview-skeleton-chat.png)
+![Chat](https://raw.githubusercontent.com/165890/dsh-claude-code-desktop-theme/main/preview-skeleton-chat.png)
 
-![Effort slider](preview-effort-slider.png)
+![Effort slider](https://raw.githubusercontent.com/165890/dsh-claude-code-desktop-theme/main/preview-effort-slider.png)
 
-![Voice input](preview-voice-input.png)
+![Voice input](https://raw.githubusercontent.com/165890/dsh-claude-code-desktop-theme/main/preview-voice-input.png)
 
-![Realtime voice](preview-realtime-voice.png)
+![Realtime voice](https://raw.githubusercontent.com/165890/dsh-claude-code-desktop-theme/main/preview-realtime-voice.png)
 
-![Boot animation](preview-boot-animation.png)
+![Boot animation](https://raw.githubusercontent.com/165890/dsh-claude-code-desktop-theme/main/preview-boot-animation.png)
 
 ## 安装
 
@@ -107,7 +107,7 @@ pnpm add link:/path/to/dsh-claude-code-desktop-theme
 ├── cordis.patch.yml    # DSH bundle 入口
 ├── locale/             # 插件市场展示用名称/描述
 ├── assets/             # 内嵌宋体子集（GB2312 woff2 + 标题子集）与 OFL 许可证
-├── preview*.png        # 截图
+├── preview*.png        # 截图（仅仓库内，已从 npm 包排除）
 ├── docs/DESIGN.zh.md   # 设计记录（内部实现笔记）
 └── .github/workflows   # CI：语法检查 + 打包检查
 ```
