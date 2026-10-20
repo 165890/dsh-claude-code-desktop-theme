@@ -70,7 +70,17 @@ const VERSION = pkg.version
 console.log(`\n${NAME}@${VERSION}${DRY ? dim('   (dry run)') : ''}\n`)
 
 // 1. A dirty tree means the published tarball would not match any commit.
-const status = execSync('git status --porcelain', { cwd: ROOT, encoding: 'utf8' }).trim()
+let status = ''
+try {
+  status = execSync('git status --porcelain', {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  }).trim()
+} catch (error) {
+  stop(`Could not read git status. Run this from a git checkout.\n${error.message}`)
+}
 if (status !== '') {
   stop(
     `Working tree has uncommitted changes. Commit them first so the\n` +
