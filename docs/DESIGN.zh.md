@@ -368,7 +368,7 @@ standardProps 已经暴露了全部所需 hooks**。插件在托盘里注册了�
 | 单实例 | 修复前可能残留孤儿抽屉；现在 `drawers=1, overlays=1` |
 | 动画/滚动 | fixed 定位不参与聊天布局，不产生重排与裁切 |
 
-预览：`preview-skeleton-chat.png`（真实徽标在对话流右侧）、`preview-diff-drawer.png`
+预览：`preview-skeleton-chat.webp`（真实徽标在对话流右侧）、`preview-diff-drawer.webp`
 （抽屉打开态，`Diff · live` + 真实代码）。
 
 ## 安装状态
@@ -393,8 +393,8 @@ standardProps 已经暴露了全部所需 hooks**。插件在托盘里注册了�
 - 安装返回 `application: applied`，配置行 `claude-code-desktop-theme` 已在 Loader 中激活。
 - 客户端 `Theme` Inspect Provider 已把本插件注册的 token 全部列为
   「Theme token registered by the current Client composition」（说明覆盖层在页面里生效）。
-- 骨架层已在运行中的桌面端窗口逐项截图核对（`preview-skeleton-hero.png` /
-  `preview-skeleton-chat.png`），并对截图像素/字形取样确认：
+- 骨架层已在运行中的桌面端窗口逐项截图核对（`preview-skeleton-hero.webp` /
+  `preview-skeleton-chat.webp`），并对截图像素/字形取样确认：
   - 侧边栏 `#f5f3ee`、新会话按钮 `#e3ddd1`（无描边 / 32px / 6px 圆角）；
   - 选中行背景 `#ece7dd`，行左缘 `::before` 取样为 `rgb(217,119,87)` = `#da7756`、
     宽 2px（选中时会话行左侧即出现竖条）；

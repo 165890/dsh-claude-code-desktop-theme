@@ -50,7 +50,7 @@
 - 触发：每个 renderer 窗口第一次加载（`sessionStorage` 键 `dsh-theme-boot-played`）。
 - 退出：点击 / Enter / Esc / 1.7s 超时；280ms 淡出；`prefers-reduced-motion` 时 0.9s 并静止。
 - 关闭：`localStorage.setItem("dsh-theme-boot-disabled","1")`。
-- 已验证：截图 `preview-boot-animation.png`；`TEMP-` 探针已移除。
+- 已验证：截图 `preview-boot-animation.webp`；`TEMP-` 探针已移除。
 - 待用户确认后再改：时长、每次启动/仅首次、画面元素、声音、是否要设置开关。
 
 ## 当前实现（2026-10-19 晚，分支 feat/2.2.0）

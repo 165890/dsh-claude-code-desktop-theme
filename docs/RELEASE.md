@@ -122,4 +122,4 @@ npm run release -- --dry
 ## 五、遗留事项
 
 - **staging 里的 2.5.1**：id `7040262d-dd7e-4b7a-b0f7-20d263875744`，与 2.5.0 功能完全相同（只有版本号和文档差异）。留着不影响新版本，想清理就 `npm stage delete 7040262d-dd7e-4b7a-b0f7-20d263875744`（需要 2FA）。
-- **包体积**：`preview*.png`（约 2 MB）已从 npm 包排除，README 改用 GitHub 绝对链接。压缩包从 4.8 MB 降到约 2.8 MB。
+- **包体积**：8 张截图从 PNG 转为 WebP（2.0 MB → 480 KB），仍随包发布，README 使用包内相对路径。压缩包从 4.8 MB 降到约 3.1 MB。注意：不要把截图换成 GitHub raw 链接——`raw.githubusercontent.com` 与 jsDelivr 在国内会直接超时，README 图片会全部裂开。

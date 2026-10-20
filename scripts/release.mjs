@@ -111,7 +111,7 @@ function readTags() {
 }
 
 /** Point `latest` at VERSION when it is not already there. One attempt. */
-function ensureLatest() {
+function ensureLatest({ soft = false } = {}) {
   step('align latest tag')
   const tags = readTags()
   if (tags.latest === VERSION) {
@@ -124,7 +124,17 @@ function ensureLatest() {
   }
   console.log(`  latest=${tags.latest ?? '(none)'} -> ${VERSION}`)
   const res = npm(`dist-tag add ${NAME}@${VERSION} latest`, { allowFail: true })
-  if (!res.ok) stop(`Could not move the latest tag:\n${res.out}`)
+  if (!res.ok) {
+    const hint =
+      `Could not move the latest tag:\n${res.out}\n\n` +
+      `The version itself may already be published. Fix the tag manually:\n\n` +
+      `  npm dist-tag add ${NAME}@${VERSION} latest`
+    if (soft) {
+      console.log(yellow(`  ${hint}`))
+      return
+    }
+    stop(hint)
+  }
   console.log(green(`  latest -> ${VERSION}`))
 }
 
@@ -132,7 +142,7 @@ function ensureLatest() {
 function verifyOnce() {
   step('verify (single read)')
   const seen = npm(`view ${NAME}@${VERSION} version`, { allowFail: true })
-  if (seen.ok && seen.out.includes(VERSION)) {
+  if (seen.ok && seen.out.trim() === VERSION) {
     console.log(green(`  ${VERSION} is live on npm`))
   } else {
     console.log(yellow(`  npm view does not show ${VERSION} yet (CDN cache, usually 1-2 min).`))
@@ -174,7 +184,7 @@ function findStaged() {
 // 4. Already published? Then only the tag can be wrong.
 step(`check whether ${NAME}@${VERSION} is already published`)
 const existing = npm(`view ${NAME}@${VERSION} version`, { allowFail: true })
-if (existing.ok && existing.out.includes(VERSION)) {
+if (existing.ok && existing.out.trim() === VERSION) {
   console.log(yellow(`  ${VERSION} is already on npm, skipping publish`))
   ensureLatest()
   verifyOnce()
@@ -239,6 +249,6 @@ if (!published.ok) {
 }
 
 console.log(green('  publish accepted'))
-ensureLatest()
+ensureLatest({ soft: true })
 verifyOnce()
 console.log(green(`\nDone: ${NAME}@${VERSION}\n`))

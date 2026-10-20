@@ -4,7 +4,7 @@
 
 - 修复：发布流程会在 npm 上死循环——`npm publish` 撞到 staging 记录直接返回 409，而 staged 版本永远不出现在 `npm view` 里，于是"发布失败"的判断永远成立。新增 `npm run release`：单次执行、自动复用暂存构建、自动校准 `latest`、只做一次结果核对，任何失败都直接打印下一步命令。
 - 修复：`latest` 标签遗漏。此前 2.5.0 已发布成功，但 `latest` 仍停在 2.2.0，用户装到的还是旧版；本地脚本与 CI 现在都会在发布后强制对齐 `latest`。
-- 优化：npm 包体从 4.8 MB 降到 2.8 MB——8 张 `preview*.png` 移出发布包，README 改用 GitHub 绝对链接。
+- 优化：npm 包体从 4.8 MB 降到约 3.0 MB——8 张截图转为 WebP（2.0 MB → 480 KB），README 仍用包内相对路径，离线或不挂代理也能正常显示。
 - 文档：新增 `docs/RELEASE.md`，写明 Automation token 配置、发版步骤与错误对照表。
 
 ## 2.5.1
