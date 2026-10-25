@@ -7,6 +7,11 @@
  * discoverable and live-reloadable.
  */
 
+import { execFile } from 'node:child_process'
+import { readFileSync, statSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+
 /**
  * Usage overview summary (merged from the former dsh-usage-overview plugin).
  *
@@ -24,7 +29,6 @@
 
 /** Browser-visible route; the fetch registry serves it under the Connection origin. */
 const SUMMARY_PATH = '/api/dsh-claude-code-desktop-theme/usage-summary'
-
 /** How long one computed summary stays fresh (ms). */
 const CACHE_TTL_MS = 30_000
 
@@ -364,10 +368,20 @@ async function buildSummary(sessionQuery, logger) {
 }
 
 /**
- * Official per-million-token prices (CNY) for the model ids DeepSeek Harness
- * routes in this profile. Used only for the in-app spend estimate when the
- * companion bottom-info-bar plugin is absent; the ledger-owned figure wins
- * whenever it is available.
+ * Per-million-token list prices for the models this plugin can estimate.
+ *
+ * Every row answers "what does one million tokens cost", in `currency`, and is
+ * either a flat `price` row or a `peak`/`offpeak` pair for the official
+ * DeepSeek time-of-day table. The first rows are the DeepSeek Harness models
+ * this plugin shipped with and are kept exactly as they were. The rest keep the
+ * HUD useful when a request is routed through an external OpenAI-compatible
+ * gateway (pi-ai, qwen-token-plan-cn, …): the catalog catches the well-known
+ * ids, `MODEL_FAMILY_RULES` catches every variant of the same family, and a
+ * conservative fallback covers ids nobody has seen yet.
+ *
+ * List prices move. This table is a snapshot and never a billing statement;
+ * `~/.dsh/dsh-claude-code-desktop-theme/pricing.json` is the supported way to
+ * correct a number the provider has changed.
  */
 const PRICING = {
   'deepseek-flash': { currency: 'CNY', mode: 'peak-valley',
@@ -384,53 +398,536 @@ const PRICING = {
     offpeak: { inputCacheHit: 0.15, inputCacheMiss: 4.5, output: 13.5 } },
   'deepseek-chat': { currency: 'CNY', mode: 'flat',
     price: { inputCacheHit: 0.5, inputCacheMiss: 2.0, output: 8.0 } },
+  'deepseek-reasoner': { currency: 'CNY', mode: 'flat',
+    price: { inputCacheHit: 1.0, inputCacheMiss: 4.0, output: 16.0 } },
+  'deepseek-r1': { currency: 'CNY', mode: 'flat',
+    price: { inputCacheHit: 1.0, inputCacheMiss: 4.0, output: 16.0 } },
 }
 
+/** Unit every rate in this file uses: currency per 1,000,000 tokens. */
+export const PRICING_UNIT = 'per-1m-tokens'
+
+/** Flat row shorthand for family defaults: a cached input token costs 10%. */
+function familyPrice(currency, inputCacheMiss, output, inputCacheHit = inputCacheMiss * 0.1) {
+  return {
+    currency,
+    mode: 'flat',
+    price: {
+      inputCacheHit: Math.round(inputCacheHit * 10_000) / 10_000,
+      inputCacheMiss,
+      output,
+    },
+  }
+}
+
+/** Official DeepSeek rows reused by the family rules so the numbers never drift. */
+const DEEPSEEK_FLASH_RATES = PRICING['deepseek-flash']
+const DEEPSEEK_PRO_RATES = PRICING['deepseek-v4-pro']
+
+/**
+ * Family defaults, first match wins. These are estimates for model ids that are
+ * not in the exact catalog: a new vendor variant, a dated snapshot id such as
+ * `deepseek-v4.1-flash-1017`, or a gateway alias. Reference prices are public
+ * list prices per 1M tokens and may lag the provider; override them with
+ * `pricing.json` when precision matters.
+ */
+const MODEL_FAMILY_RULES = [
+  // DeepSeek (CNY) — official peak/valley table reused for unknown descendants.
+  { id: 'deepseek-pro', test: /^deepseek.*(?:pro|reasoner|r1)/, price: DEEPSEEK_PRO_RATES },
+  { id: 'deepseek-flash', test: /^deepseek/, price: DEEPSEEK_FLASH_RATES },
+
+  // Alibaba Qwen / DashScope (CNY).
+  { id: 'qwen-max', test: /^(?:qwen|qwq).*(?:max|omni)/, price: familyPrice('CNY', 2.4, 9.6) },
+  { id: 'qwen-coder', test: /^(?:qwen|qwq).*coder/, price: familyPrice('CNY', 4, 16, 0.4) },
+  { id: 'qwen-plus', test: /^(?:qwen|qwq).*(?:plus|long)/, price: familyPrice('CNY', 0.8, 2, 0.08) },
+  { id: 'qwen-turbo', test: /^(?:qwen|qwq).*(?:turbo|flash|lite)/, price: familyPrice('CNY', 0.3, 0.6, 0.03) },
+  { id: 'qwen', test: /^(?:qwen|qwq)/, price: familyPrice('CNY', 0.8, 2, 0.08) },
+
+  // Zhipu GLM (CNY).
+  { id: 'glm-air', test: /^(?:glm|chatglm|zhipu).*(?:air|flash|free)/, price: familyPrice('CNY', 0.8, 2, 0.08) },
+  { id: 'glm', test: /^(?:glm|chatglm|zhipu)/, price: familyPrice('CNY', 4, 16, 0.4) },
+
+  // Moonshot Kimi (CNY).
+  { id: 'kimi-128k', test: /^(?:kimi|moonshot).*128k/, price: familyPrice('CNY', 60, 60, 6) },
+  { id: 'kimi-32k', test: /^(?:kimi|moonshot).*32k/, price: familyPrice('CNY', 24, 24, 2.4) },
+  { id: 'kimi-8k', test: /^(?:kimi|moonshot).*8k/, price: familyPrice('CNY', 12, 12, 1.2) },
+  { id: 'kimi-k2', test: /^(?:kimi|moonshot).*(?:k2|k3|thinking)/, price: familyPrice('CNY', 4, 16, 1) },
+  { id: 'kimi', test: /^(?:kimi|moonshot)/, price: familyPrice('CNY', 4, 16, 1) },
+
+  // MiniMax (CNY).
+  { id: 'minimax-m2', test: /^(?:minimax|abab).*(?:m2|m1)/, price: familyPrice('CNY', 2.1, 8.4, 0.21) },
+  { id: 'minimax', test: /^(?:minimax|abab)/, price: familyPrice('CNY', 2, 8, 0.2) },
+
+  // OpenAI GPT (USD list prices).
+  { id: 'gpt-5-mini', test: /^gpt-?5.*mini/, price: familyPrice('USD', 0.25, 2, 0.025) },
+  { id: 'gpt-5', test: /^gpt-?5/, price: familyPrice('USD', 1.25, 10, 0.125) },
+  { id: 'o-mini', test: /^o[134].*mini/, price: familyPrice('USD', 1.1, 4.4, 0.275) },
+  { id: 'o-series', test: /^o[134](?:[^a-z]|$)/, price: familyPrice('USD', 2, 8, 0.5) },
+  { id: 'gpt-4o-mini', test: /^gpt-?4o.*mini/, price: familyPrice('USD', 0.15, 0.6, 0.075) },
+  { id: 'gpt-4', test: /^gpt-?4/, price: familyPrice('USD', 2.5, 10, 1.25) },
+  { id: 'gpt', test: /^(?:gpt|chatgpt|o[134])/, price: familyPrice('USD', 2, 8, 0.5) },
+
+  // Anthropic Claude (USD list prices).
+  { id: 'claude-opus', test: /^claude.*opus/, price: familyPrice('USD', 15, 75, 1.5) },
+  { id: 'claude-sonnet', test: /^claude.*sonnet/, price: familyPrice('USD', 3, 15, 0.3) },
+  { id: 'claude-haiku', test: /^claude.*haiku/, price: familyPrice('USD', 1, 5, 0.1) },
+  { id: 'claude', test: /^claude/, price: familyPrice('USD', 3, 15, 0.3) },
+
+  // Google Gemini and xAI Grok (USD list prices).
+  { id: 'gemini-flash', test: /^gemini.*(?:flash|lite)/, price: familyPrice('USD', 0.3, 2.5, 0.075) },
+  { id: 'gemini', test: /^gemini/, price: familyPrice('USD', 1.25, 10, 0.31) },
+  { id: 'grok', test: /^grok/, price: familyPrice('USD', 3, 15, 1.5) },
+]
+
+/** Provider names a gateway may use for a known family (prefix match). */
+const PROVIDER_FAMILY_RULES = [
+  { id: 'deepseek', test: /^deepseek/i, familyId: 'deepseek-flash' },
+  { id: 'qwen', test: /^(?:qwen|dashscope|aliyun|bailian|tongyi)/i, familyId: 'qwen' },
+  { id: 'glm', test: /^(?:glm|zhipu|bigmodel|chatglm)/i, familyId: 'glm' },
+  { id: 'kimi', test: /^(?:kimi|moonshot)/i, familyId: 'kimi' },
+  { id: 'minimax', test: /^(?:minimax|abab)/i, familyId: 'minimax' },
+  { id: 'gpt', test: /^(?:openai|gpt|azure)/i, familyId: 'gpt' },
+  { id: 'claude', test: /^(?:anthropic|claude|bedrock)/i, familyId: 'claude' },
+  { id: 'gemini', test: /^(?:google|gemini|vertex)/i, familyId: 'gemini' },
+  { id: 'grok', test: /^(?:xai|grok)/i, familyId: 'grok' },
+]
+
+const FAMILY_PRICE_BY_ID = new Map(MODEL_FAMILY_RULES.map((rule) => [rule.id, rule.price]))
+
+/**
+ * Conservative mid-tier fallback for a model id no rule recognises. The HUD
+ * shows a clearly-marked estimate instead of "—"; `priceSource: 'none'` tells
+ * the Client this row guessed.
+ */
+const UNKNOWN_MODEL_PRICING = {
+  currency: 'CNY',
+  mode: 'flat',
+  price: { inputCacheHit: 0.2, inputCacheMiss: 2, output: 8 },
+}
+
+/**
+ * Optional per-user price overrides:
+ *
+ *   ~/.dsh/dsh-claude-code-desktop-theme/pricing.json
+ *
+ * `DSH_THEME_PRICING_FILE` points the loader at a different file (used by the
+ * offline check script). The file is optional: a missing or unreadable file is
+ * ignored and the built-in catalog is used.
+ */
+const PRICING_OVERRIDE_ENV = 'DSH_THEME_PRICING_FILE'
+const PRICING_OVERRIDE_PATH = join(homedir(), '.dsh', 'dsh-claude-code-desktop-theme', 'pricing.json')
+const PRICING_OVERRIDE_TTL_MS = 10_000
+
+/** Default peak window: Beijing weekdays 09:00–12:00 and 14:00–18:00. */
+const DEFAULT_PEAK_VALLEY = Object.freeze({
+  enabled: true,
+  utcOffsetMinutes: 480,
+  weekdays: Object.freeze([1, 2, 3, 4, 5]),
+  windows: Object.freeze([Object.freeze([540, 720]), Object.freeze([840, 1080])]),
+})
+
+/** Money is rounded to four decimals: token spend is routinely sub-cent. */
+function roundCost(value) {
+  return Math.round(value * 10_000) / 10_000
+}
+
+/** Non-negative finite number, or null. */
+function nonNegativeNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+}
+
+/** The override file to read: `DSH_THEME_PRICING_FILE` wins over the default. */
+export function pricingFilePath() {
+  const custom = process.env[PRICING_OVERRIDE_ENV]
+  return typeof custom === 'string' && custom.trim() !== '' ? custom.trim() : PRICING_OVERRIDE_PATH
+}
+
+/**
+ * Strip a gateway vendor prefix (`openai/gpt-5`, `models/...`) and lowercase
+ * the id. The vendor prefix is not part of the family name.
+ */
+function normalizeModelName(model) {
+  let name = String(model).trim().toLowerCase()
+  const slash = name.lastIndexOf('/')
+  if (slash !== -1) name = name.slice(slash + 1)
+  return name
+}
+
+/** `HH:MM` or a bare hour count into minutes after midnight, or null. */
+function toMinutes(value) {
+  const number = nonNegativeNumber(value)
+  if (number === null) return null
+  // Bare numbers <= 24 are hours (9 -> 09:00); larger numbers are minutes.
+  if (number <= 24) return Math.round(number * 60)
+  return number <= 1440 ? Math.round(number) : null
+}
+
+/** One `["09:00","12:00"]` / `"09:00-12:00"` / `[9,12]` peak window. */
+function parsePeakWindow(raw) {
+  if (Array.isArray(raw) && raw.length === 2) {
+    const start = toMinutes(raw[0])
+    const end = toMinutes(raw[1])
+    return start !== null && end !== null && end > start ? [start, end] : null
+  }
+  if (typeof raw === 'string') {
+    const match = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/.exec(raw.trim())
+    if (match === null) return null
+    const start = Number(match[1]) * 60 + Number(match[2])
+    const end = Number(match[3]) * 60 + Number(match[4])
+    return start >= 0 && end <= 1440 && end > start ? [start, end] : null
+  }
+  return null
+}
+
+/** Merge the optional `peakValley` object over the built-in default. */
+function normalizePeakValley(raw, errors) {
+  const config = {
+    enabled: true,
+    utcOffsetMinutes: 480,
+    weekdays: [1, 2, 3, 4, 5],
+    windows: [[540, 720], [840, 1080]],
+  }
+  if (raw === undefined || raw === null) return config
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    errors.push('pricing.json: peakValley must be an object; using defaults')
+    return config
+  }
+  if (raw.enabled === false) config.enabled = false
+  const offset = nonNegativeNumber(raw.utcOffsetMinutes ?? raw.utcOffset)
+  if (offset !== null && offset <= 14 * 60) config.utcOffsetMinutes = Math.trunc(offset)
+  if (Array.isArray(raw.weekdays)) {
+    const days = raw.weekdays.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+    if (days.length > 0) config.weekdays = days
+  }
+  if (Array.isArray(raw.windows)) {
+    const windows = raw.windows.map(parsePeakWindow).filter((window) => window !== null)
+    if (windows.length > 0) config.windows = windows
+  }
+  return config
+}
+
+/** A flat/peak-valley row from a user override entry, or null when malformed. */
+function normalizeOverrideRow(raw) {
+  if (raw === null || typeof raw !== 'object') return null
+  const miss = nonNegativeNumber(raw.inputCacheMiss ?? raw.input)
+  const output = nonNegativeNumber(raw.output)
+  if (miss === null || output === null) return null
+  const hit = nonNegativeNumber(raw.inputCacheHit ?? raw.cacheRead)
+  return { inputCacheHit: hit ?? miss * 0.1, inputCacheMiss: miss, output }
+}
+
+/** One `{ input, output, cacheRead, currency }` override entry, or null. */
+function normalizeOverrideEntry(raw) {
+  if (raw === null || typeof raw !== 'object') return null
+  const currency =
+    typeof raw.currency === 'string' && raw.currency.trim() !== ''
+      ? raw.currency.trim().toUpperCase()
+      : 'CNY'
+  if (raw.mode === 'peak-valley') {
+    const peak = normalizeOverrideRow(raw.peak)
+    const offpeak = normalizeOverrideRow(raw.offpeak)
+    if (peak === null || offpeak === null) return null
+    return { currency, mode: 'peak-valley', peak, offpeak }
+  }
+  const inputCacheMiss = nonNegativeNumber(raw.input)
+  const output = nonNegativeNumber(raw.output)
+  if (inputCacheMiss === null || output === null) return null
+  const inputCacheHit = nonNegativeNumber(raw.cacheRead) ?? inputCacheMiss * 0.1
+  return { currency, mode: 'flat', price: { inputCacheHit, inputCacheMiss, output } }
+}
+
+/** Escape a `*` glob into an anchored regular expression. */
+function globToRegExp(pattern) {
+  return new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$')
+}
+
+/**
+ * Turn `{ models: { "key": {...} } }` into matchable rules. A key may be an
+ * exact model id, a prefix of one, a `*` glob, or `provider:model` scoped.
+ */
+function parseOverrideRules(document) {
+  const models = document?.models
+  if (models === null || typeof models !== 'object' || Array.isArray(models)) return []
+  const rules = []
+  for (const [rawKey, rawEntry] of Object.entries(models)) {
+    const entry = normalizeOverrideEntry(rawEntry)
+    if (entry === null) continue
+    const key = String(rawKey).trim().toLowerCase()
+    if (key === '') continue
+    const colon = key.indexOf(':')
+    const provider = colon === -1 ? null : key.slice(0, colon).trim()
+    const pattern = (colon === -1 ? key : key.slice(colon + 1)).trim()
+    if (pattern === '' || provider === '') continue
+    const glob = pattern.includes('*')
+    rules.push({
+      rawKey: String(rawKey).trim(),
+      provider,
+      pattern,
+      glob,
+      regex: glob ? globToRegExp(pattern) : null,
+      entry,
+    })
+  }
+  return rules
+}
+
+/** Score one override rule against the requested model (0 = no match). */
+function overrideScore(rule, lowerProvider, candidates) {
+  const providerScoped = rule.provider !== null
+  if (providerScoped && (lowerProvider === '' || !lowerProvider.startsWith(rule.provider))) return 0
+  if (rule.glob) {
+    for (const candidate of candidates) {
+      if (rule.regex.test(candidate)) return providerScoped ? 2 : 1
+    }
+    return 0
+  }
+  // Exact id beats a prefix, and a provider-scoped rule beats a bare one.
+  for (const candidate of candidates) {
+    if (candidate === rule.pattern) return providerScoped ? 6 : 5
+  }
+  for (const candidate of candidates) {
+    if (candidate.startsWith(rule.pattern)) return providerScoped ? 4 : 3
+  }
+  return 0
+}
+
+/** The best user override for this provider/model pair, or undefined. */
+function matchOverride(rules, provider, model) {
+  if (rules.length === 0) return undefined
+  const lowerProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : ''
+  const raw = String(model).trim().toLowerCase()
+  const normalized = normalizeModelName(model)
+  const candidates = normalized === raw ? [normalized] : [normalized, raw]
+  let best
+  for (const rule of rules) {
+    const score = overrideScore(rule, lowerProvider, candidates)
+    if (score === 0) continue
+    // Longer patterns are more specific; they win a same-kind tie.
+    const weighted = score * 1_000_000 + rule.pattern.length
+    if (best === undefined || weighted > best.weighted) best = { weighted, rule }
+  }
+  return best?.rule
+}
+
+let pricingStateCache = { path: '', mtime: -1, at: 0, value: undefined }
+
+/**
+ * Load and cache the optional override document. Cached for a short TTL and
+ * invalidated as soon as the file's mtime changes, so editing pricing.json is
+ * reflected in the HUD without a restart.
+ *
+ * @param {{ force?: boolean }} [options] - force bypasses the TTL cache.
+ * @returns {{ path: string, found: boolean, rules: Array<object>, peakValley: object, errors: Array<string>, loadedAt: number }}
+ */
+export function loadPricingState(options = {}) {
+  const path = pricingFilePath()
+  let mtime = -1
+  try {
+    mtime = statSync(path).mtimeMs
+  } catch {
+    mtime = -1
+  }
+  const now = Date.now()
+  const cached = pricingStateCache
+  if (
+    options.force !== true &&
+    cached.value !== undefined &&
+    cached.path === path &&
+    cached.mtime === mtime &&
+    now - cached.at < PRICING_OVERRIDE_TTL_MS
+  ) {
+    return cached.value
+  }
+
+  const errors = []
+  const document = mtime === -1 ? undefined : readJsonFile(path)
+  if (mtime !== -1 && document === undefined) {
+    errors.push('pricing.json is not valid JSON; using the built-in catalog')
+  }
+  const value = {
+    path,
+    found: mtime !== -1,
+    rules: parseOverrideRules(document),
+    peakValley: normalizePeakValley(document?.peakValley, errors),
+    errors,
+    loadedAt: now,
+  }
+  pricingStateCache = { path, mtime, at: now, value }
+  return value
+}
+
+/** Confidence order used when one Session mixes several price sources. */
+const PRICE_SOURCE_RANK = { none: 0, family: 1, catalog: 2, override: 3 }
+
+/**
+ * Resolve the price table row for one provider/model pair.
+ *
+ * Matching priority (highest first):
+ *   1. override exact — `provider:model` then bare model id;
+ *   2. override prefix / `*` glob, longest pattern first;
+ *   3. built-in exact catalog — provider-scoped id then bare model id;
+ *   4. built-in family rules — model id first, then provider name prefix;
+ *   5. none — conservative fallback estimate so the HUD never shows "—".
+ *
+ * @param {string | undefined} provider - request provider id.
+ * @param {string | undefined} model - request model id.
+ * @param {{ state?: object }} [options] - reuse a loaded override state.
+ * @returns {{ entry: object, currency: string, priceSource: 'catalog'|'override'|'family'|'none', matchedKey: string|null, estimated: boolean, unit: string } | null}
+ */
+export function resolvePricing(provider, model, options = {}) {
+  if (typeof model !== 'string' || model.trim() === '') return null
+  const state = options.state ?? loadPricingState()
+  const lowerProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : ''
+  const normalized = normalizeModelName(model)
+  const raw = String(model).trim().toLowerCase()
+
+  const override = matchOverride(state.rules, provider, model)
+  if (override !== undefined) {
+    return {
+      entry: override.entry,
+      currency: override.entry.currency,
+      priceSource: 'override',
+      matchedKey: override.rawKey,
+      estimated: true,
+      unit: PRICING_UNIT,
+    }
+  }
+
+  const scopedKey =
+    lowerProvider === '' ? undefined : PROVIDER_SCOPED_PRICING[lowerProvider + ':' + normalized]
+  const catalogKey =
+    scopedKey ?? (Object.hasOwn(PRICING, normalized) ? normalized : Object.hasOwn(PRICING, raw) ? raw : undefined)
+  if (catalogKey !== undefined) {
+    const entry = PRICING[catalogKey]
+    return {
+      entry,
+      currency: entry.currency,
+      priceSource: 'catalog',
+      matchedKey: catalogKey,
+      estimated: true,
+      unit: PRICING_UNIT,
+    }
+  }
+
+  for (const rule of MODEL_FAMILY_RULES) {
+    if (!rule.test.test(normalized)) continue
+    return {
+      entry: rule.price,
+      currency: rule.price.currency,
+      priceSource: 'family',
+      matchedKey: 'family:' + rule.id,
+      estimated: true,
+      unit: PRICING_UNIT,
+    }
+  }
+
+  for (const rule of PROVIDER_FAMILY_RULES) {
+    if (lowerProvider === '' || !rule.test.test(lowerProvider)) continue
+    const price = FAMILY_PRICE_BY_ID.get(rule.familyId)
+    if (price === undefined) continue
+    return {
+      entry: price,
+      currency: price.currency,
+      priceSource: 'family',
+      matchedKey: 'provider:' + rule.id,
+      estimated: true,
+      unit: PRICING_UNIT,
+    }
+  }
+
+  return {
+    entry: UNKNOWN_MODEL_PRICING,
+    currency: UNKNOWN_MODEL_PRICING.currency,
+    priceSource: 'none',
+    matchedKey: null,
+    estimated: true,
+    unit: PRICING_UNIT,
+  }
+}
+
+/**
+ * Official provider+model pairs. The provider prefix keeps a future provider
+ * that reuses a model id from inheriting the DeepSeek row by accident.
+ */
 const PROVIDER_SCOPED_PRICING = {
   'deepseek:deepseek-flash': 'deepseek-flash',
   'deepseek:deepseek-v4-flash': 'deepseek-v4-flash',
   'deepseek:deepseek-v4-flash-vision-exp': 'deepseek-v4-flash-vision-exp',
   'deepseek:deepseek-v4-pro': 'deepseek-v4-pro',
   'deepseek:deepseek-chat': 'deepseek-chat',
+  'deepseek:deepseek-reasoner': 'deepseek-reasoner',
+  'deepseek:deepseek-r1': 'deepseek-r1',
 }
 
-function pricingFor(provider, model) {
-  if (typeof model !== 'string' || model === '') return null
-  const scoped = typeof provider === 'string' ? PROVIDER_SCOPED_PRICING[provider + ':' + model] : undefined
-  const key = scoped ?? model
-  return Object.hasOwn(PRICING, key) ? PRICING[key] : null
+/**
+ * Whether one timestamp falls inside the configured peak window.
+ *
+ * Defaults reproduce the original Beijing-time rule (weekdays 09:00–12:00 and
+ * 14:00–18:00). `pricing.json` may override the time zone offset, the weekday
+ * set and the windows; `{ enabled: false }` turns peak pricing off entirely,
+ * which bills every call at the off-peak rate.
+ *
+ * @param {number} time - epoch milliseconds.
+ * @param {{ enabled?: boolean, utcOffsetMinutes?: number, weekdays?: number[], windows?: number[][] }} [peakValley]
+ * @returns {boolean}
+ */
+export function isPeakTime(time, peakValley = DEFAULT_PEAK_VALLEY) {
+  const config = peakValley ?? DEFAULT_PEAK_VALLEY
+  if (config.enabled === false) return false
+  const offset = Number.isFinite(config.utcOffsetMinutes) ? config.utcOffsetMinutes : 480
+  const shifted = new Date((typeof time === 'number' ? time : Date.now()) + offset * 60_000)
+  const weekdays = Array.isArray(config.weekdays) ? config.weekdays : DEFAULT_PEAK_VALLEY.weekdays
+  if (!weekdays.includes(shifted.getUTCDay())) return false
+  const minutes = shifted.getUTCHours() * 60 + shifted.getUTCMinutes()
+  const windows = Array.isArray(config.windows) ? config.windows : DEFAULT_PEAK_VALLEY.windows
+  return windows.some(([start, end]) => minutes >= start && minutes < end)
 }
 
-/** Beijing-time peak window: weekdays 09:00–12:00 and 14:00–18:00. */
-function isPeakTime(time) {
-  const beijing = new Date(time + 8 * 60 * 60 * 1000)
-  const day = beijing.getUTCDay()
-  if (day === 0 || day === 6) return false
-  const hour = beijing.getUTCHours()
-  return (hour >= 9 && hour < 12) || (hour >= 14 && hour < 18)
+/** The `{ inputCacheHit, inputCacheMiss, output }` row in force at one time. */
+function ratesFor(entry, time, peakValley) {
+  if (entry === null || typeof entry !== 'object') return null
+  if (entry.mode !== 'peak-valley') return entry.price ?? null
+  return isPeakTime(time, peakValley) ? entry.peak : entry.offpeak
 }
 
 const SESSION_COST_CACHE_MS = 5 * 1000
 const sessionCostCache = new Map()
 
 /**
- * Price the assistant usage samples of one Session with the built-in table.
- * This is a real token-based estimate, not a billing statement: unknown
- * providers/models stay unpriced and therefore report `priced: false`.
+ * Price the assistant usage samples of one Session and report where the number
+ * came from. Every token is priced through `resolvePricing`, so an external
+ * provider (pi-ai, qwen-token-plan-cn, …) gets a family-level estimate instead
+ * of "—".
+ *
+ * This is never a billing statement: `estimated: true` means the value was
+ * computed locally from recorded usage, and the Client keeps preferring the
+ * ledger figure owned by the bottom-info-bar plugin whenever it is present.
+ *
+ * `cost` is only `null` when at least one usage sample could not be priced at
+ * all (no model known yet); partially priced sessions are not silently
+ * understated. When a session mixes currencies, no FX conversion is invented:
+ * `currency` names the largest subtotal and `costByCurrency` lists the rest.
+ *
  * @param {object} sessionQuery - Host session-query service.
  * @param {string} sessionId - Session id to fold.
- * @returns {Promise<object>} `{ sessionId, cost, currency, priced, model }`.
+ * @returns {Promise<object>} `{ sessionId, cost, currency, priced, estimated,
+ *   priceSource, matchedKey, unit, model, provider, costByCurrency,
+ *   mixedCurrencies, unpricedSamples }`.
  */
-async function buildSessionCost(sessionQuery, sessionId) {
+export async function buildSessionCost(sessionQuery, sessionId) {
   const key = String(sessionId)
   const cached = sessionCostCache.get(key)
   if (cached !== undefined && Date.now() - cached.at < SESSION_COST_CACHE_MS) return cached.value
 
   const observed = await sessionQuery.observeSession(sessionId, { projectionMode: 'none' })
+  const pricing = loadPricingState()
+  const n = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : 0)
+  const totals = new Map()
   let model
   let provider
-  let cost = 0
-  let priced = true
+  let unpricedSamples = 0
+  let weakest
+
   for (const event of observed.events) {
     if (event?.type === 'request/header') {
       const config = event?.data?.header?.config
@@ -441,25 +938,59 @@ async function buildSessionCost(sessionQuery, sessionId) {
     if (event?.type !== 'assistant/message') continue
     const usage = event?.data?.usage
     if (usage === null || typeof usage !== 'object') continue
-    const entry = pricingFor(provider, model)
-    if (entry === null) {
-      priced = false
+    if (typeof model !== 'string' || model === '') {
+      unpricedSamples += 1
       continue
     }
-    const rates = entry.mode === 'peak-valley'
-      ? (isPeakTime(typeof event.time === 'number' ? event.time : Date.now()) ? entry.peak : entry.offpeak)
-      : entry.price
-    const n = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : 0)
+    const resolved = resolvePricing(provider, model, { state: pricing })
+    if (resolved === null) {
+      unpricedSamples += 1
+      continue
+    }
+    const rates = ratesFor(resolved.entry, typeof event.time === 'number' ? event.time : Date.now(), pricing.peakValley)
+    if (rates === null) {
+      unpricedSamples += 1
+      continue
+    }
     const miss = n(usage.inputTokens) + n(usage.cacheWriteTokens)
-    cost += (n(usage.cacheReadTokens) * rates.inputCacheHit + miss * rates.inputCacheMiss + n(usage.outputTokens) * rates.output) / 1e6
+    const amount =
+      (n(usage.cacheReadTokens) * rates.inputCacheHit + miss * rates.inputCacheMiss + n(usage.outputTokens) * rates.output) / 1e6
+    totals.set(resolved.currency, (totals.get(resolved.currency) ?? 0) + amount)
+    const rank = PRICE_SOURCE_RANK[resolved.priceSource] ?? 0
+    if (weakest === undefined || rank < weakest.rank) {
+      weakest = { rank, source: resolved.priceSource, matchedKey: resolved.matchedKey }
+    }
   }
+
+  const priced = unpricedSamples === 0
+  const entries = [...totals.entries()]
+  let currency = 'CNY'
+  let cost = 0
+  if (priced && entries.length > 0) {
+    entries.sort((a, b) => b[1] - a[1])
+    currency = entries[0][0]
+    cost = roundCost(entries[0][1])
+  }
+  const costByCurrency = {}
+  for (const [code, amount] of entries) costByCurrency[code] = roundCost(amount)
 
   const value = {
     sessionId: key,
-    cost: priced ? Math.round(cost * 10000) / 10000 : null,
-    currency: 'CNY',
+    cost: priced ? cost : null,
+    currency,
     priced,
+    // A locally computed number, never a provider charge. `priceSource` tells
+    // the Client how exact the rate was: catalog/override = exact model row,
+    // family = same-family default, none = generic fallback guess.
+    estimated: priced,
+    priceSource: weakest === undefined ? 'none' : weakest.source,
+    matchedKey: weakest === undefined ? null : weakest.matchedKey,
+    unit: PRICING_UNIT,
     model: model ?? null,
+    provider: provider ?? null,
+    costByCurrency,
+    mixedCurrencies: entries.length > 1,
+    unpricedSamples,
   }
   sessionCostCache.set(key, { at: Date.now(), value })
   return value
@@ -537,118 +1068,277 @@ function installUsageSummaryRoute(ctx) {
 }
 
 
-/** One handwritten character; the host renders these into the index body. */
-function bootChars(text, startDelay) {
-  return Array.from(text)
-    .map((char, index) => `<span class="dsh-boot-char" style="--dsh-boot-delay:${startDelay + index * 42}ms">${char === ' ' ? '&nbsp;' : char}</span>`)
-    .join('')
+/* ── Self-update endpoints ───────────────────────────────────────────────── */
+
+/**
+ * DSH shows an "update" action only for its own optional bundles; a third
+ * party profile plugin has to be uninstalled and reinstalled by hand. These
+ * two routes give the plugin page enough information to offer a real button.
+ *
+ *   POST /api/dsh-claude-code-desktop-theme/update-status -> installed + latest
+ *   POST /api/dsh-claude-code-desktop-theme/update-apply  -> pnpm add latest
+ *
+ * Host code runs outside the workspace sandbox, so it may spawn pnpm. The
+ * apply route only ever touches this one package and never accepts a spec from
+ * the request body.
+ */
+const THEME_PACKAGE = 'dsh-claude-code-desktop-theme'
+const UPDATE_STATUS_PATH = '/api/dsh-claude-code-desktop-theme/update-status'
+const UPDATE_APPLY_PATH = '/api/dsh-claude-code-desktop-theme/update-apply'
+const UPDATE_QUERY_TTL_MS = 10 * 60 * 1000
+const PROFILE_NAMES = ['desktop', 'web']
+
+let updateCache = { at: 0, value: undefined }
+
+/** pnpm 11's default `minimumReleaseAge`: releases younger than this are skipped. */
+const RELEASE_WAIT_MS = 24 * 60 * 60 * 1000
+
+/** Read one JSON file, or return undefined when it is missing or malformed. */
+function readJsonFile(path) {
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'))
+  } catch {
+    return undefined
+  }
+}
+
+/** Version of the copy installed in the profile — what the next restart loads. */
+function installedVersion(profileDir) {
+  const manifest = readJsonFile(join(profileDir, 'node_modules', THEME_PACKAGE, 'package.json'))
+  return typeof manifest?.version === 'string' ? manifest.version : null
+}
+
+/** Parse `pnpm view <pkg> <field> --json` output, or null when it is not JSON. */
+function parseJsonOutput(text) {
+  const trimmed = String(text ?? '').trim()
+  if (trimmed === '') return null
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    return null
+  }
+}
+
+/** Version of the copy that is currently running. */
+function runningVersion() {
+  try {
+    const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
+    return typeof manifest?.version === 'string' ? manifest.version : '0.0.0'
+  } catch {
+    return '0.0.0'
+  }
 }
 
 /**
- * Boot curtain injected into index.html at body start. Because it is part of the
- * initial HTML it paints before the Harness boot card, so it replaces the stock
- * "Loading plugins..." screen instead of appearing after it. The whole style
- * block lives inside the overlay, so removing the overlay also restores the
- * stock boot UI if it is still on screen.
+ * Find the profile that depends on this package and report how it was
+ * installed. A `link:` spec points at a working copy, where "updating" means
+ * pulling the checkout, so pnpm must not be involved.
  */
-const BOOT_BODY = `<div id="dsh-boot-overlay" role="status" aria-label="Hello, can I do for you?">
-<style>
-  [data-dsh-boot]{display:none!important}
-  #dsh-boot-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 42%,#fbf8f1 0%,#f5f3ee 58%,#efe9dd 100%);color:#1d1b16;opacity:1;animation:dsh-boot-curtain 2.75s cubic-bezier(.4,0,.2,1) both;overflow:hidden;contain:paint;font-family:Georgia,"Palatino Linotype","Times New Roman",serif;user-select:none}
-  #dsh-boot-overlay[data-leaving="1"]{opacity:0!important;pointer-events:none;transition:opacity .32s ease}
-  #dsh-boot-overlay .dsh-boot-type{display:flex;flex-direction:column;align-items:center;line-height:1;transition:opacity .14s ease}
-  #dsh-boot-overlay .dsh-boot-line{display:block;white-space:nowrap;font-family:Georgia,"Palatino Linotype","Times New Roman",serif!important;font-size:clamp(42px,6.4vw,86px);line-height:1.04;letter-spacing:.01em}
-  #dsh-boot-overlay .dsh-boot-char{font-family:Georgia,"Palatino Linotype","Times New Roman",serif!important}
-  #dsh-boot-overlay .dsh-boot-line--hello{color:#1d1b16;font-style:normal;font-weight:400}
-  #dsh-boot-overlay .dsh-boot-line--question{margin-top:.08em;color:#a94c2b;font-style:italic;font-weight:400;opacity:0;animation:dsh-boot-reveal .52s cubic-bezier(.16,1,.3,1) .72s both}
-  #dsh-boot-overlay .dsh-boot-char{display:inline-block;opacity:0;transform-origin:50% 80%;backface-visibility:hidden;will-change:transform,opacity;animation:dsh-boot-write .4s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--dsh-boot-delay,0ms)}
-  #dsh-boot-overlay .dsh-boot-rule{width:clamp(48px,5vw,84px);height:2px;margin-top:26px;border-radius:1px;background:#a94c2b;opacity:.32;transform:scaleX(0);transform-origin:left;animation:dsh-boot-rule .6s cubic-bezier(.16,1,.3,1) 1.05s both;transition:opacity .14s ease}
-  #dsh-boot-overlay .dsh-boot-hint{position:absolute;bottom:44px;font-family:"SF Mono","Consolas",monospace!important;font-size:11px;letter-spacing:.08em;color:#9a9080;opacity:0;animation:dsh-boot-hint .3s ease 1s both}
-  #dsh-boot-overlay[data-leaving="1"] .dsh-boot-type,
-  #dsh-boot-overlay[data-leaving="1"] .dsh-boot-rule,
-  #dsh-boot-overlay[data-leaving="1"] .dsh-boot-hint{opacity:0!important;transition:opacity .14s ease!important}
-  @keyframes dsh-boot-write{0%{opacity:0;transform:translate3d(0,7px,0) rotate(-3deg) scale(.96)}60%{opacity:1}100%{opacity:1;transform:translate3d(0,0,0) rotate(0) scale(1)}}
-  @keyframes dsh-boot-reveal{0%{opacity:0;transform:translate3d(0,10px,0)}100%{opacity:1;transform:translate3d(0,0,0)}}
-  @keyframes dsh-boot-rule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-  @keyframes dsh-boot-hint{from{opacity:0}to{opacity:.85}}
-  @keyframes dsh-boot-curtain{0%{opacity:1}87%{opacity:1}100%{opacity:0;visibility:hidden}}
-  @media (prefers-reduced-motion: reduce){
-    #dsh-boot-overlay{animation-duration:1.2s}
-    #dsh-boot-overlay .dsh-boot-char{opacity:1;animation:none!important;filter:none!important;transform:none!important}
-    #dsh-boot-overlay .dsh-boot-line--question{opacity:1;animation:none!important;transform:none!important}
-    #dsh-boot-overlay .dsh-boot-rule{transform:none;animation:none!important;opacity:.32}
-    #dsh-boot-overlay .dsh-boot-hint{opacity:.85;animation:none!important}
-  }
-</style>
-<div class="dsh-boot-type">
-  <div class="dsh-boot-line dsh-boot-line--hello">${bootChars('Hello,', 0)}</div>
-  <div class="dsh-boot-line dsh-boot-line--question">can I do for you?</div>
-</div>
-<div class="dsh-boot-rule"></div>
-<div class="dsh-boot-hint">点击任意处跳过</div>
-<script>
-(function () {
-  var script = document.currentScript;
-  var overlay = (script && script.parentNode && script.parentNode.id === 'dsh-boot-overlay')
-    ? script.parentNode
-    : null;
-  if (overlay === null) overlay = document.getElementById('dsh-boot-overlay');
-  if (overlay === null) return;
-  var onceKey = 'dsh-theme-boot-v3-played';
-  var disabledKey = 'dsh-theme-boot-disabled';
-  try {
-    if (window.sessionStorage.getItem(onceKey) === '1' || window.localStorage.getItem(disabledKey) === '1') {
-      overlay.remove();
-      return;
+function installedSource() {
+  for (const name of PROFILE_NAMES) {
+    const dir = join(homedir(), '.dsh', 'profiles', name)
+    try {
+      const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+      const spec = manifest?.dependencies?.[THEME_PACKAGE]
+      if (typeof spec === 'string' && spec.length > 0) {
+        return { dir, spec, kind: spec.startsWith('link:') ? 'link' : 'registry' }
+      }
+    } catch {
+      // profile may not exist; keep looking
     }
-    window.sessionStorage.setItem(onceKey, '1');
-  } catch (error) {
-    /* storage may be unavailable; play the animation once anyway */
   }
-  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // The reveal is pure CSS and runs from the moment the document is parsed, so
-  // a window that maps late still opens on readable copy instead of a blank
-  // curtain. Waiting for visibilityState or rAF to "start" the animation was
-  // measured to leave the screen empty for about a second: Electron keeps the
-  // page hidden and suspends rAF well past the point the window is on screen.
-  //
-  // This script is only an accelerator. The injected markup goes through an
-  // HTML insertion path where inline scripts are not executed, so the curtain
-  // now fades itself out with the dsh-boot-curtain keyframes. Never make the
-  // removal depend on this block running.
-  var holdMs = reduced ? 900 : 2400;
-  var finished = false;
-  var endTimer = null;
-  var watchdog = null;
-  function remove() {
-    if (overlay.parentNode !== null) overlay.parentNode.removeChild(overlay);
-  }
-  function finish() {
-    if (finished) return;
-    finished = true;
-    if (endTimer !== null) window.clearTimeout(endTimer);
-    if (watchdog !== null) window.clearTimeout(watchdog);
-    overlay.setAttribute('data-leaving', '1');
-    window.setTimeout(remove, 460);
-  }
-  endTimer = window.setTimeout(finish, holdMs);
-  // Hard cap: the curtain must never outlive the boot even if finish() throws
-  // or a timer is throttled by a hidden window.
-  watchdog = window.setTimeout(remove, holdMs + 1800);
-  overlay.addEventListener('click', finish);
-  window.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') finish();
-  });
-})();
-</script>
-</div>`
+  return undefined
+}
 
-/** Register the index-body injection; the disposer removes it with the plugin. */
-function installBootInjection(ctx) {
-  const row = { kind: 'html', placement: 'body', html: BOOT_BODY }
-  ctx.on('webserver/index-inject', (table) => {
-    if (!Array.isArray(table)) return
-    table.push(row)
+/** Run pnpm once. Never retries; the caller decides what a failure means. */
+function runPnpm(args, timeoutMs) {
+  return new Promise((resolve) => {
+    const command = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
+    execFile(
+      command,
+      args,
+      {
+        cwd: homedir(),
+        timeout: timeoutMs,
+        windowsHide: true,
+        shell: process.platform === 'win32',
+        maxBuffer: 4 * 1024 * 1024,
+      },
+      (error, stdout, stderr) => {
+        resolve({ ok: error === null, output: `${stdout ?? ''}${stderr ?? ''}`.trim() })
+      },
+    )
+  })
+}
+
+function isNewer(candidate, baseline) {
+  const a = String(candidate).split('.').map((n) => Number.parseInt(n, 10) || 0)
+  const b = String(baseline).split('.').map((n) => Number.parseInt(n, 10) || 0)
+  for (let i = 0; i < 3; i += 1) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0)
+  }
+  return false
+}
+
+async function readUpdateStatus() {
+  if (updateCache.value !== undefined && Date.now() - updateCache.at < UPDATE_QUERY_TTL_MS) {
+    return updateCache.value
+  }
+  const installed = installedSource()
+  const current = runningVersion()
+  const base = {
+    current,
+    installed: installed === undefined ? null : installedVersion(installed.dir),
+    source: installed?.kind ?? 'unknown',
+    profile: installed?.dir ?? null,
+    spec: installed?.spec ?? null,
+  }
+
+  // Resolve the published version for every install source. A `link:` checkout
+  // cannot be installed over, but its owner still needs to know whether the
+  // working copy is ahead of, level with, or behind what npm serves.
+  const versionResult = await runPnpm(['view', THEME_PACKAGE, 'version', '--json'], 30_000)
+  if (!versionResult.ok) {
+    const value = { ...base, latest: null, hasUpdate: false, canApply: false, cooldown: null, error: versionResult.output.slice(-500) }
+    updateCache = { at: Date.now(), value }
+    return value
+  }
+  const parsedVersion = parseJsonOutput(versionResult.output)
+  const latest =
+    typeof parsedVersion === 'string' ? parsedVersion : versionResult.output.replace(/["\s]/g, '')
+  if (typeof latest !== 'string' || latest.length === 0) {
+    const value = { ...base, latest: null, hasUpdate: false, canApply: false, cooldown: null, error: 'unreadable-version' }
+    updateCache = { at: Date.now(), value }
+    return value
+  }
+
+  // When was that release published? pnpm 11 refuses to resolve a version
+  // younger than `minimumReleaseAge`, so a just-published release is invisible
+  // to a plain install. Reporting the window is what stops "the update did
+  // nothing" from looking like a broken plugin.
+  let publishedAt = null
+  const timeResult = await runPnpm(['view', THEME_PACKAGE, 'time', '--json'], 30_000)
+  if (timeResult.ok) {
+    const table = parseJsonOutput(timeResult.output)
+    const raw = table !== null && typeof table === 'object' ? table[latest] : undefined
+    if (typeof raw === 'string' && !Number.isNaN(Date.parse(raw))) publishedAt = raw
+  }
+  const cooldownUntil =
+    publishedAt === null ? null : new Date(Date.parse(publishedAt) + RELEASE_WAIT_MS).toISOString()
+  const cooldownActive = cooldownUntil !== null && Date.now() < Date.parse(cooldownUntil)
+  const baseline = base.installed ?? current
+
+  const value = {
+    ...base,
+    latest,
+    latestPublishedAt: publishedAt,
+    cooldownUntil,
+    cooldownActive,
+    // Only a registry install can be replaced; a `link:` checkout reports the
+    // gap but its "update" is a git pull in the working copy.
+    canApply: base.source === 'registry',
+    hasUpdate: isNewer(latest, baseline),
+  }
+  updateCache = { at: Date.now(), value }
+  return value
+}
+
+async function applyUpdate() {
+  const installed = installedSource()
+  if (installed === undefined) return { ok: false, reason: 'no-profile' }
+  if (installed.kind === 'link') {
+    return { ok: false, reason: 'link', message: 'This profile links a working copy; update it with git pull.' }
+  }
+
+  // Resolve the target here, never from the request body: a route that accepts
+  // a spec is a route that can install anything.
+  const versionResult = await runPnpm(['view', THEME_PACKAGE, 'version', '--json'], 30_000)
+  if (!versionResult.ok) {
+    return { ok: false, reason: 'registry', message: versionResult.output.slice(-1000) }
+  }
+  const parsedVersion = parseJsonOutput(versionResult.output)
+  const target =
+    typeof parsedVersion === 'string' ? parsedVersion : versionResult.output.replace(/["\s]/g, '')
+  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(target)) {
+    return { ok: false, reason: 'registry', message: `unreadable latest version: ${target.slice(0, 120)}` }
+  }
+
+  const before = installedVersion(installed.dir) ?? runningVersion()
+  if (!isNewer(target, before)) {
+    return {
+      ok: true,
+      from: before,
+      to: before,
+      alreadyInstalled: true,
+      restartRequired: runningVersion() !== before,
+    }
+  }
+
+  // Install the exact version, not the `latest` tag. pnpm 11's minimumReleaseAge
+  // skips a release younger than 24 h even when `latest` names it, which is
+  // exactly how users ended up on an older build after a successful publish.
+  const result = await runPnpm(['add', `${THEME_PACKAGE}@${target}`, '--dir', installed.dir], 240_000)
+  updateCache = { at: 0, value: undefined }
+  if (!result.ok) return { ok: false, reason: 'pnpm', message: result.output.slice(-2000) }
+
+  const after = installedVersion(installed.dir)
+  if (after !== target) {
+    return {
+      ok: false,
+      reason: 'verify',
+      message:
+        `pnpm reported success but ${join(installed.dir, 'node_modules', THEME_PACKAGE)} ` +
+        `reads ${after ?? 'missing'}, expected ${target}.`,
+      output: result.output.slice(-2000),
+    }
+  }
+  return {
+    ok: true,
+    from: before,
+    to: target,
+    restartRequired: runningVersion() !== target,
+    output: result.output.slice(-2000),
+  }
+}
+
+function installUpdateRoutes(ctx) {
+  ctx.inject(['connection'], (scope) => {
+    const connection = scope.get('connection')
+    const register = typeof connection?.fetch?.register === 'function' ? connection.fetch.register.bind(connection.fetch) : undefined
+    if (register === undefined) return
+
+    const routes = [
+      [UPDATE_STATUS_PATH, readUpdateStatus, 'theme update status route'],
+      [UPDATE_APPLY_PATH, applyUpdate, 'theme update apply route'],
+    ]
+
+    for (const [path, handler, label] of routes) {
+      scope.effect(
+        () =>
+          register(
+            {
+              path,
+              methods: ['POST'],
+              requestBody: 'buffered',
+              fetch: async () => {
+                try {
+                  return Response.json(
+                    { ok: true, value: await handler() },
+                    { headers: { 'cache-control': 'no-store' } },
+                  )
+                } catch (error) {
+                  return Response.json(
+                    { ok: false, error: { code: 'theme-update', message: String(error?.message ?? error) } },
+                    { status: 200, headers: { 'cache-control': 'no-store' } },
+                  )
+                }
+              },
+            },
+            `dsh-claude-code-desktop-theme: ${label}`,
+          ),
+        label,
+      )
+    }
   })
 }
 
@@ -656,8 +1346,8 @@ function installBootInjection(ctx) {
 export function apply(ctx) {
   installUsageSummaryRoute(ctx)
   try {
-    installBootInjection(ctx)
+    installUpdateRoutes(ctx)
   } catch (error) {
-    ctx.logger?.warn?.(`dsh-claude-code-desktop-theme: boot injection failed: ${String(error?.message ?? error)}`)
+    ctx.logger?.warn?.(`dsh-claude-code-desktop-theme: update routes failed: ${String(error?.message ?? error)}`)
   }
 }

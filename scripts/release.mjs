@@ -25,6 +25,7 @@ import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { describeProbe, probeFreshInstall } from './fresh-install.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const DRY = process.argv.includes('--dry')
@@ -61,6 +62,19 @@ function npm(args, { allowFail = false } = {}) {
     if (allowFail) return { ok: false, out }
     stop(`Command failed: ${command}\n${out}`)
   }
+}
+
+/** Compare dotted versions numerically, ignoring a leading `v`. */
+function compareVersions(a, b) {
+  const parse = (value) =>
+    value.replace(/^v/, '').split('.').map((part) => Number.parseInt(part, 10) || 0)
+  const left = parse(a)
+  const right = parse(b)
+  for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
+    const diff = (left[i] ?? 0) - (right[i] ?? 0)
+    if (diff !== 0) return diff
+  }
+  return 0
 }
 
 const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8'))
@@ -162,6 +176,36 @@ function verifyOnce() {
   for (const [tag, version] of Object.entries(tags)) console.log(`  ${tag}: ${version}`)
 }
 
+/**
+ * Resolve the package the way a new machine does and report the difference.
+ *
+ * A live version plus a correct `latest` still is not what a reporter installs:
+ * pnpm 11 skips releases younger than minimumReleaseAge and silently falls back
+ * to the newest older version. Publishing cannot fix that, so the release has
+ * to say so — and repeat the exact `name@version` install that does.
+ */
+function reportFreshInstall() {
+  step('fresh-install probe (what a new machine resolves)')
+  // Before a real publish the version under test does not exist yet, so report
+  // what a new machine gets from whatever `latest` names right now.
+  const target = DRY ? (readTags().latest ?? VERSION) : VERSION
+  const result = probeFreshInstall(NAME, target)
+  if (result.ok) {
+    console.log(green(`  a fresh install resolves ${NAME}@${result.installed}`))
+    return
+  }
+  if (result.reason === 'pnpm-missing') {
+    console.log(yellow('  no pnpm could be run; skipped. Check by hand in an empty folder:'))
+    console.log(yellow(`  pnpm add ${NAME}@latest`))
+    return
+  }
+  for (const line of describeProbe(NAME, target, result).split('\n')) {
+    console.log(yellow(`  ${line}`))
+  }
+  console.log(yellow(`  (If ${target} was published less than a minute ago, the registry may not have propagated yet.`))
+  console.log(yellow('   Re-run the probe in a minute before telling anyone.)'))
+}
+
 /** Find a staged build for this exact version, if npm is new enough to list it. */
 function findStaged() {
   const res = npm(`stage list ${NAME}`, { allowFail: true })
@@ -191,24 +235,48 @@ function findStaged() {
   return hit?.id ?? null
 }
 
-// 4. Already published? Then only the tag can be wrong.
+// 4. A version lower than `latest` can never reach anyone, and publishing one
+//    moves the tag backwards — how 2.2.1 landed right after 2.5.0.
+step('version ordering')
+const knownTags = readTags()
+if (knownTags.latest !== undefined && compareVersions(VERSION, knownTags.latest) < 0) {
+  const message =
+    `${VERSION} is lower than the version latest points at (${knownTags.latest}).\n` +
+    `A fresh install would still resolve ${knownTags.latest}, so this release\n` +
+    `would reach nobody and would move latest backwards.\n\n` +
+    `Bump the version instead:\n\n` +
+    `  npm version patch\n\n` +
+    `Publish anyway only if you know why:\n\n` +
+    `  ALLOW_LOWER_VERSION=1 npm run release`
+  if (process.env.ALLOW_LOWER_VERSION === '1') {
+    console.log(yellow(`  ${VERSION} < latest ${knownTags.latest}; continuing (ALLOW_LOWER_VERSION=1)`))
+  } else {
+    stop(message)
+  }
+} else {
+  console.log(green(`  ${VERSION} is not older than latest (${knownTags.latest ?? '(none)'})`))
+}
+
+// 5. Already published? Then only the tag can be wrong.
 step(`check whether ${NAME}@${VERSION} is already published`)
 const existing = npm(`view ${NAME}@${VERSION} version`, { allowFail: true })
 if (existing.ok && existing.out.trim() === VERSION) {
   console.log(yellow(`  ${VERSION} is already on npm, skipping publish`))
   ensureLatest()
   verifyOnce()
+  reportFreshInstall()
   console.log(green(`\nDone: ${NAME}@${VERSION} is available\n`))
   process.exit(0)
 }
 
-// 5. A leftover staged build blocks publish with 409. Approve it instead.
+// 6. A leftover staged build blocks publish with 409. Approve it instead.
 step('check npm staging')
 const stagedId = findStaged()
 if (stagedId !== null) {
   console.log(yellow(`  found a staged build for ${VERSION}: ${stagedId}`))
   if (DRY) {
     console.log(yellow('  --dry: a real run would approve this record instead of publishing again'))
+    reportFreshInstall()
     console.log(yellow('\n--dry: all checks passed, nothing was written\n'))
     process.exit(0)
   }
@@ -224,16 +292,18 @@ if (stagedId !== null) {
   }
   ensureLatest()
   verifyOnce()
+  reportFreshInstall()
   console.log(green(`\nDone: ${NAME}@${VERSION} is published\n`))
   process.exit(0)
 }
 
 if (DRY) {
+  reportFreshInstall()
   console.log(yellow('\n--dry: all checks passed, npm publish was not executed\n'))
   process.exit(0)
 }
 
-// 6. Publish. One attempt; known failures get a concrete next step.
+// 7. Publish. One attempt; known failures get a concrete next step.
 step(`publish ${NAME}@${VERSION}`)
 const published = npm('publish --access public', { allowFail: true })
 if (!published.ok) {
@@ -261,4 +331,5 @@ if (!published.ok) {
 console.log(green('  publish accepted'))
 ensureLatest({ soft: true })
 verifyOnce()
+reportFreshInstall()
 console.log(green(`\nDone: ${NAME}@${VERSION}\n`))

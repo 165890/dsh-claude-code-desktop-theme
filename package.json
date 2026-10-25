@@ -51,8 +51,9 @@
     "access": "public"
   },
   "scripts": {
-    "check": "node --check index.js && node --check client.js",
+    "check": "node --check index.js && node --check client.js && node scripts/check-pricing.mjs",
     "release": "node scripts/release.mjs",
+    "check:install": "node scripts/fresh-install.mjs",
     "prepublishOnly": "npm run check"
   },
   "homepage": "https://github.com/165890/dsh-claude-code-desktop-theme#readme",

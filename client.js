@@ -557,102 +557,124 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       // Selected session row: cream fill plus a forced 2px terracotta rail on
       // the row's own left edge. A pseudo-element keeps it glued to the item
       // through scrolling, resizing and re-renders, with no runtime geometry.
-      `${LIGHT} .hIlkoa_sessionRow.hIlkoa_selected{background:${SHELL.navActiveFill}!important}`,
-      `${LIGHT} .hIlkoa_sessionRow.hIlkoa_selected:hover{background:${SHELL.navActiveFill}!important}`,
-      `.hIlkoa_sessionRow.hIlkoa_selected{position:relative!important}`,
-      `.hIlkoa_sessionRow.hIlkoa_selected::before{content:""!important;position:absolute!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;width:2px!important;height:18px!important;border-radius:1px;background:${SHELL.navActiveRail}!important;pointer-events:none!important;z-index:2}`,
+      `${LIGHT} [class*="_sessionRow"][class*="_selected"]{background:${SHELL.navActiveFill}!important}`,
+      `${LIGHT} [class*="_sessionRow"][class*="_selected"]:hover{background:${SHELL.navActiveFill}!important}`,
+      `[class*="_sessionRow"][class*="_selected"]{position:relative!important}`,
+      `[class*="_sessionRow"][class*="_selected"]::before{content:""!important;position:absolute!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;width:2px!important;height:18px!important;border-radius:1px;background:${SHELL.navActiveRail}!important;pointer-events:none!important;z-index:2}`,
       // Status semantics (real layer): the dot is a CSS pseudo-element on the
       // host's own leading slot, driven by `data-dsh-status`. A pseudo-element
       // is computed style, not a React child, so a sidebar re-render can never
       // delete it -- the dot cannot blink out of existence.
-      `.hIlkoa_sessionRow[data-dsh-status] .hIlkoa_slot{display:inline-flex!important;flex:none;align-items:center!important;justify-content:center!important}`,
-      `.hIlkoa_sessionRow[data-dsh-status]:not([data-dsh-status="busy"]) .hIlkoa_slot::before{content:""!important;display:inline-block!important;width:6px!important;height:6px!important;min-width:6px!important;min-height:6px!important;box-sizing:border-box!important;border-radius:50%!important;background:#7f7869!important;opacity:.5!important;flex:none!important;pointer-events:none!important}`,
-      `.hIlkoa_sessionRow[data-dsh-status="waiting"] .hIlkoa_slot::before{background:#da7756!important;opacity:1!important}`,
+      `[class*="_sessionRow"][data-dsh-status] [class*="_slot"]{display:inline-flex!important;flex:none;align-items:center!important;justify-content:center!important}`,
+      `[class*="_sessionRow"][data-dsh-status]:not([data-dsh-status="busy"]) [class*="_slot"]::before{content:""!important;display:inline-block!important;width:6px!important;height:6px!important;min-width:6px!important;min-height:6px!important;box-sizing:border-box!important;border-radius:50%!important;background:#7f7869!important;opacity:.5!important;flex:none!important;pointer-events:none!important}`,
+      `[class*="_sessionRow"][data-dsh-status="waiting"] [class*="_slot"]::before{background:#da7756!important;opacity:1!important}`,
       // Busy rows use the host's native rotating arc spinner (14px): keep it,
       // recolour it to the theme accent, and hide the pseudo dot instead.
-      `.hIlkoa_sessionRow[data-dsh-status="busy"] .hIlkoa_slot::before{display:none!important}`,
-      `.hIlkoa_sessionRow[data-dsh-status="busy"] .hIlkoa_slot>svg[data-state="ongoing"]{display:inline-block!important;flex:none!important;width:14px!important;height:14px!important;color:#da7756!important}`,
-      `.hIlkoa_sessionRow[data-dsh-status="busy"] .hIlkoa_slot>svg[data-state="ongoing"] circle{stroke:#da7756!important;stroke-width:2px!important}`,
-      `.hIlkoa_sessionRow[data-dsh-status="busy"] .hIlkoa_slot>svg[data-state="ongoing"] [class*="Track"]{stroke:rgba(218,119,86,.25)!important}`,
-      `@media (prefers-reduced-motion:reduce){.hIlkoa_sessionRow[data-dsh-status="busy"] .hIlkoa_slot>svg[data-state="ongoing"] *{animation:none!important}}`,
+      `[class*="_sessionRow"][data-dsh-status="busy"] [class*="_slot"]::before{display:none!important}`,
+      `[class*="_sessionRow"][data-dsh-status="busy"] [class*="_slot"]>svg[data-state="ongoing"]{display:inline-block!important;flex:none!important;width:14px!important;height:14px!important;color:#da7756!important}`,
+      `[class*="_sessionRow"][data-dsh-status="busy"] [class*="_slot"]>svg[data-state="ongoing"] circle{stroke:#da7756!important;stroke-width:2px!important}`,
+      `[class*="_sessionRow"][data-dsh-status="busy"] [class*="_slot"]>svg[data-state="ongoing"] [class*="Track"]{stroke:rgba(218,119,86,.25)!important}`,
+      `@media (prefers-reduced-motion:reduce){[class*="_sessionRow"][data-dsh-status="busy"] [class*="_slot"]>svg[data-state="ongoing"] *{animation:none!important}}`,
       // Hero: force the serif display face, a lighter and slightly smaller
       // headline, and the ink color (all !important so host sheets cannot win).
-      `${LIGHT} .Hqq-bq_headline,${LIGHT} .Hqq-bq_titleGroup>span:not([class]){color:${SHELL.heroInk}!important;font-family:${UI_FONT}!important;font-size:22px!important;font-weight:400!important;line-height:30px}`,
-      `body[data-ds-dark-theme] .Hqq-bq_headline,body[data-ds-dark-theme] .Hqq-bq_titleGroup>span:not([class]){font-family:${UI_FONT}!important;font-size:22px!important;font-weight:400!important;line-height:30px}`,
-      `${LIGHT} .Hqq-bq_fish{color:${SHELL.heroInk}!important}`,
-      `${LIGHT} .Hqq-bq_previewBadge{background:${SHELL.previewFill}!important;border-color:transparent!important;color:${SHELL.previewInk}!important}`,
-      // ── Hero dashboard layout (2026-10-18 · 阶段十三) ─────────────────────
-      // No big hero title at all: the whole title block is removed from flow.
-      // Hero mode becomes a top-left dashboard: card first, then the workspace
-      // selector row sitting directly above the composer, left aligned.
-      `.Dc7zOa_composerHero .Hqq-bq_root{display:none!important}`,
-      `.Dc7zOa_composerHero{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0!important}`,
-      `.Dc7zOa_composerHero .duo-card{order:1!important;width:calc(100% - 32px)!important;max-width:none!important;margin:0 16px 28px!important}`,
+      `${LIGHT} [class*="_composerHero"] [class*="_headline"],${LIGHT} [class*="_composerHero"] [class*="_titleGroup"]>span:not([class]){color:${SHELL.heroInk}!important;font-family:${UI_FONT}!important;font-size:22px!important;font-weight:400!important;line-height:30px}`,
+      `body[data-ds-dark-theme] [class*="_composerHero"] [class*="_headline"],body[data-ds-dark-theme] [class*="_composerHero"] [class*="_titleGroup"]>span:not([class]){font-family:${UI_FONT}!important;font-size:22px!important;font-weight:400!important;line-height:30px}`,
+      `${LIGHT} [class*="_fish"]:not([class*="_fishHitbox"]){color:${SHELL.heroInk}!important}`,
+      `${LIGHT} [class*="_previewBadge"]{background:${SHELL.previewFill}!important;border-color:transparent!important;color:${SHELL.previewInk}!important}`,
+      // ── Hero dashboard layout ─────────────────────────────────────────────
+      // Home layout: the usage card is pinned to the top-left of the chat area
+      // (aligned with the composer card), and the composer itself is pushed to
+      // the bottom of the window. Both positions are measured at runtime into
+      // CSS vars, so they follow the host's sidebar/header geometry instead of
+      // guessing. The title block is removed; the workspace row keeps the host
+      // order right above the composer.
+      `[class*="_composerHero"] [class*="_root"]:has([class*="_headline"]){display:none!important}`,
+      `[class*="_composerHero"] .duo-card{position:fixed!important;left:var(--dsh-hero-left,280px)!important;top:var(--dsh-hero-top,72px)!important;width:var(--dsh-hero-width,720px)!important;max-width:var(--dsh-hero-width,720px)!important;max-height:calc(100vh - var(--dsh-hero-top,72px) - 340px)!important;overflow:auto!important;margin:0!important;z-index:6!important}`,
+      `[class*="_composerHero"] .duo-card::-webkit-scrollbar{width:6px}`,
+      `[class*="_composerHero"] .duo-card::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:999px}`,
+      `html[data-dsh-hero="false"] .duo-card{display:none!important}`,
       // Usage card: favourite-model tile shows the full model name (wraps instead of ellipsis).
       `.duo-grid>.duo-tile:last-child .duo-tile-value{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:break-word!important;word-break:break-word!important;font-size:12px!important;line-height:16px!important}`,
       // Usage card model tile: a smaller dedicated font keeps long real model names on two lines.
       `.duo-grid>.duo-tile:last-child .duo-tile-value--model{font-size:12px!important;line-height:16px!important}`,
       `.duo-model-name{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}`,
-      `.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow{order:2!important;position:relative!important;margin:0 0 10px!important;padding:0 16px!important;background:transparent!important;border:0!important;box-shadow:none!important;display:flex!important;align-items:center!important;gap:4px!important;min-height:26px!important;z-index:2}`,
-      `.Dc7zOa_composerHero .RlGAzG_root{order:3!important}`,
+      `[class*="_composerHero"] [class*="_heroWorkspaceRow"]{position:relative!important;margin:0 0 8px!important;padding:0 16px!important;background:transparent!important;border:0!important;box-shadow:none!important;display:flex!important;align-items:center!important;gap:4px!important;min-height:26px!important;z-index:2}`,
       // Lightweight pill menus above the composer: transparent, gray text,
       // darker on hover; the host's background blocks are removed.
-      `.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow .Hqq-bq_workspace,.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow ._oGoKq_seat{background:transparent!important;border:0!important;box-shadow:none!important;color:#87867F!important;font-size:13px!important;font-weight:400!important;line-height:20px!important;padding:0 8px!important;border-radius:999px!important;min-height:26px!important;gap:4px!important}`,
-      `.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow .Hqq-bq_workspace:hover,.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow ._oGoKq_seat:hover,.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow .Hqq-bq_workspace[aria-expanded="true"],.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow ._oGoKq_seat[aria-expanded="true"]{background:transparent!important;color:#1d1b16!important}`,
-      `.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow .Hqq-bq_folder,.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow .Hqq-bq_chevron,.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow ._oGoKq_seatLabel{color:inherit!important}`,
-      `.Dc7zOa_composerHero .Dc7zOa_heroWorkspaceRow svg{color:inherit!important}`,
+      `[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_workspace"]:not([class*="_workspaceRow"]):not([class*="_workspaceLabel"]),[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_seat"]:not([class*="_seatIcon"]):not([class*="_seatLabel"]){background:transparent!important;border:0!important;box-shadow:none!important;color:#87867F!important;font-size:13px!important;font-weight:400!important;line-height:20px!important;padding:0 8px!important;border-radius:999px!important;min-height:26px!important;gap:4px!important}`,
+      `[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_workspace"]:not([class*="_workspaceRow"]):not([class*="_workspaceLabel"]):hover,[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_seat"]:not([class*="_seatIcon"]):not([class*="_seatLabel"]):hover,[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_workspace"]:not([class*="_workspaceRow"]):not([class*="_workspaceLabel"])[aria-expanded="true"],[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_seat"]:not([class*="_seatIcon"]):not([class*="_seatLabel"])[aria-expanded="true"]{background:transparent!important;color:#1d1b16!important}`,
+      `[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_folder"],[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_chevron"],[class*="_composerHero"] [class*="_heroWorkspaceRow"] [class*="_seatLabel"]{color:inherit!important}`,
+      `[class*="_composerHero"] [class*="_heroWorkspaceRow"] svg{color:inherit!important}`,
       // Composer: soft warm fill, hairline stroke, one very light float shadow.
-      `${LIGHT} .RlGAzG_card{background:${SHELL.composerFill}!important;border:1px solid ${SHELL.composerBorder}!important;box-shadow:${SHELL.composerShadow}!important}`,
+      `${LIGHT} [class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]){background:${SHELL.composerFill}!important;border:1px solid ${SHELL.composerBorder}!important;box-shadow:${SHELL.composerShadow}!important}`,
       // Composer controls: no fills, muted glyphs.
-      `${LIGHT} .RlGAzG_add{background:transparent!important;color:${SHELL.controlInk}}`,
-      `${LIGHT} .RlGAzG_add:hover:not(:disabled){background:${SHELL.controlHover}!important}`,
-      `${LIGHT} .Gyyz9a_trigger{background:transparent!important;color:${SHELL.controlInk}}`,
-      `${LIGHT} .Gyyz9a_trigger:hover:not(:disabled){background:${SHELL.controlHover}!important}`,
-      `${LIGHT} .wq12jW_trigger,${LIGHT} .wq12jW_triggerEffort,${LIGHT} .wq12jW_chevron{color:${SHELL.controlInk}}`,
+      `${LIGHT} [class*="_root"]:has([data-lexical-editor="true"]) [class*="_add"]{background:transparent!important;color:${SHELL.controlInk}}`,
+      `${LIGHT} [class*="_root"]:has([data-lexical-editor="true"]) [class*="_add"]:hover:not(:disabled){background:${SHELL.controlHover}!important}`,
+      `${LIGHT} [class*="_triggerAnchor"] [class*="_trigger"]{background:transparent!important;color:${SHELL.controlInk}}`,
+      `${LIGHT} [class*="_triggerAnchor"] [class*="_trigger"]:hover:not(:disabled){background:${SHELL.controlHover}!important}`,
+      `${LIGHT} [class*="_trigger"]:has([class*="_triggerEffort"]),${LIGHT} [class*="_triggerEffort"],${LIGHT} [class*="_trigger"]:has([class*="_triggerEffort"]) [class*="_chevron"]{color:${SHELL.controlInk}}`,
       // Composer cleanup: keep the toolbar row as two clean ends. The 1017
       // model-version tag (from the model-label plugin), the voice trigger and
       // the old bottom stats tray are hidden; the HUD tray below the card
       // replaces the old bar.
-      `.wq12jW_trigger span[class*="_tag_"]{display:none!important}`,
+      `[class*="_trigger"]:has([class*="_triggerEffort"]) span[class*="_tag_"]{display:none!important}`,
       // The official experimental Voice Input bundle mounts its microphone in
       // the activity slot. That slot is also where the old activity row used to
       // live, so only hide the legacy dock stats — never the whole activity row.
-      `.Gyyz9a_triggerAnchor{flex:none;display:inline-flex;align-items:center}`,
-      `html[data-dsh-realtime-voice="1"] .Gyyz9a_triggerAnchor{display:none!important}`,
-      `.dsh-live-voice-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;order:999}`,
-      `.dsh-live-voice{position:relative;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#7f7869;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .2s ease,color .2s ease,transform .2s ease}`,
+      `[class*="_triggerAnchor"]{flex:none;display:inline-flex;align-items:center}`,
+      `html[data-dsh-realtime-voice="1"] [class*="_triggerAnchor"]{display:none!important}`,
+      // Live voice button: fixed 30×30 footprint so recording can never change the
+      // composer geometry. The recording state is painted by a rAF loop that only
+      // writes transform/opacity (bars scaleY + expanding ring), never width,
+      // height, margin or box-shadow.
+      `.dsh-live-voice-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;order:999;contain:layout}`,
+      `.dsh-live-voice{position:relative;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#7f7869;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;overflow:visible;transition:background-color .2s ease,color .2s ease}`,
       `.dsh-live-voice:hover{background:rgba(218,119,86,.10);color:#da7756}`,
       `body[data-ds-dark-theme] .dsh-live-voice{color:#b9b0a2}`,
-      `.dsh-live-voice[data-recording="true"]{background:#da7756;color:#fff8f3;transform:scale(1.04);animation:dsh-live-voice-pulse 1.5s ease-in-out infinite}`,
-      `.dsh-live-voice-dot{position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:#fff8f3;box-shadow:0 0 0 2px rgba(218,119,86,.5)}`,
-      `@keyframes dsh-live-voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(218,119,86,.28)}50%{box-shadow:0 0 0 5px rgba(218,119,86,.10)}}`,
-      `@media (prefers-reduced-motion:reduce){.dsh-live-voice[data-recording="true"]{animation:none!important}}`,
-      `.Gyyz9a_trigger{width:30px;height:30px;padding:0;border-radius:999px;background:transparent!important;color:#7f7869!important;transition:background-color .15s ease,color .15s ease}`,
-      `.Gyyz9a_trigger:hover:not(:disabled){background:rgba(218,119,86,.10)!important;color:#da7756!important}`,
-      `.Gyyz9a_trigger:focus-visible{outline:2px solid rgba(218,119,86,.55)!important;outline-offset:2px}`,
-      `.Gyyz9a_captureRow{align-items:center;gap:12px;padding:2px 2px 2px 4px;border-radius:999px;background:rgba(218,119,86,.07)}`,
-      `.Gyyz9a_roundButton{width:32px;height:32px;background:#da7756!important;color:#fff8f3!important;box-shadow:0 2px 8px rgba(218,119,86,.28)}`,
-      `.Gyyz9a_roundButton:hover:not(:disabled){background:#c4633f!important}`,
-      `.Gyyz9a_waveform{color:#da7756!important}`,
-      `.Gyyz9a_activityMessage{color:#7f7869!important;font-size:12px}`,
-      `.Gyyz9a_progress{accent-color:#da7756!important}`,
+      `.dsh-live-voice[data-recording="true"]{background:#da7756;color:#fff8f3}`,
+      `.dsh-live-voice-ring{position:absolute;left:0;top:0;width:30px;height:30px;border-radius:999px;border:1.5px solid rgba(218,119,86,.55);opacity:0;pointer-events:none;will-change:transform,opacity}`,
+      `.dsh-live-voice-icon{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;transition:opacity .15s ease}`,
+      `.dsh-live-voice-bars{position:absolute;left:50%;top:50%;display:inline-flex;align-items:center;justify-content:center;gap:2.5px;width:20px;height:16px;margin:-8px 0 0 -10px;opacity:0;pointer-events:none;will-change:opacity}`,
+      `.dsh-live-voice-bar{display:block;width:2.5px;height:14px;border-radius:999px;background:#fff8f3;transform-origin:center center;transform:scaleY(.16);transition:opacity .15s ease}`,
+      `.dsh-live-voice[data-recording="true"] .dsh-live-voice-icon{opacity:0}`,
+      `.dsh-live-voice[data-recording="true"] .dsh-live-voice-bars{opacity:1}`,
+      `.dsh-live-voice-dot{position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:#fff8f3;box-shadow:0 0 0 2px rgba(218,119,86,.5);pointer-events:none}`,
+      `@media (prefers-reduced-motion:reduce){.dsh-live-voice,.dsh-live-voice-icon,.dsh-live-voice-bars,.dsh-live-voice-bar{transition:none!important}}`,
+      `[class*="_triggerAnchor"] [class*="_trigger"]{width:30px;height:30px;padding:0;border-radius:999px;background:transparent!important;color:#7f7869!important;transition:background-color .15s ease,color .15s ease}`,
+      `[class*="_triggerAnchor"] [class*="_trigger"]:hover:not(:disabled){background:rgba(218,119,86,.10)!important;color:#da7756!important}`,
+      `[class*="_triggerAnchor"] [class*="_trigger"]:focus-visible{outline:2px solid rgba(218,119,86,.55)!important;outline-offset:2px}`,
+      `[class*="_captureRow"]{align-items:center;gap:12px;padding:2px 2px 2px 4px;border-radius:999px;background:rgba(218,119,86,.07)}`,
+      `[class*="_roundButton"]{width:32px;height:32px;background:#da7756!important;color:#fff8f3!important;box-shadow:0 2px 8px rgba(218,119,86,.28)}`,
+      `[class*="_roundButton"]:hover:not(:disabled){background:#c4633f!important}`,
+      `[class*="_waveform"]{color:#da7756!important}`,
+      `[class*="_activityMessage"]{color:#7f7869!important;font-size:12px}`,
+      `[class*="_captureRow"] [class*="_progress"]{accent-color:#da7756!important}`,
       `@keyframes dsh-voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(218,119,86,.25)}50%{box-shadow:0 0 0 5px rgba(218,119,86,.10)}}`,
-      `.Gyyz9a_captureRow .Gyyz9a_roundButton:first-of-type{animation:dsh-voice-pulse 1.8s ease-in-out infinite}`,
-      `@media (prefers-reduced-motion:reduce){.Gyyz9a_captureRow .Gyyz9a_roundButton:first-of-type{animation:none!important}}`,
-      `.RlGAzG_dock{display:none!important}`,
+      `[class*="_captureRow"] [class*="_roundButton"]:first-of-type{animation:dsh-voice-pulse 1.8s ease-in-out infinite}`,
+      `@media (prefers-reduced-motion:reduce){[class*="_captureRow"] [class*="_roundButton"]:first-of-type{animation:none!important}}`,
+      `[class*="_root"]:has([data-lexical-editor="true"]) [class*="_dock"]{display:none!important}`,
       // Composer HUD tray: one quiet 16px line directly below the composer card
       // (8px gap), two ends aligned, monospace 12px. It is injected as a
       // sibling of the card, so the card itself never grows.
-      `.dsh-composer-tray{display:flex;align-items:center;justify-content:space-between;gap:16px;box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width);margin:8px auto 0;padding:0 2px;overflow:hidden;font-family:"SF Mono","Consolas",monospace;font-size:12px;line-height:16px;color:${SHELL.controlInk};white-space:nowrap;font-variant-numeric:tabular-nums}`,
+      `.dsh-composer-tray{display:flex;align-items:center;justify-content:space-between;gap:16px;box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width);margin:8px auto 0;padding:0 2px;overflow:hidden;contain:layout style;font-family:"SF Mono","Consolas",monospace;font-size:12px;line-height:16px;color:${SHELL.controlInk};white-space:nowrap;font-variant-numeric:tabular-nums}`,
       `.dsh-tray-group{display:inline-flex;align-items:center;min-width:0}`,
       `.dsh-tray-left{gap:14px;flex:none}`,
       `.dsh-tray-right{gap:8px;flex:0 1 auto;justify-content:flex-end;overflow:hidden}`,
       `.dsh-tray-sep{color:#b4ab99;flex:none}`,
-      `.dsh-sidebar-footer-balance{position:absolute!important;right:10px!important;top:50%!important;transform:translateY(-50%)!important;font-family:inherit!important;font-size:12px!important;line-height:16px!important;color:#7f7869!important;white-space:nowrap!important;pointer-events:none!important;z-index:2!important}`,
-      `.wCInkW_triggerRow .dsh-sidebar-footer-balance{font-family:${UI_FONT}!important}`,
-      `.wCInkW_triggerRow{position:relative!important}`,
+      `.dsh-sidebar-footer-balance{flex:0 1 auto!important;min-width:0!important;align-self:center!important;margin-left:auto!important;padding-left:8px!important;max-width:52%!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:right!important;font-family:${UI_FONT}!important;font-size:12px!important;line-height:16px!important;color:#7f7869!important;white-space:nowrap!important;pointer-events:none!important}`,
+      `button[data-signed-out][aria-haspopup="menu"]{overflow:hidden!important}`,
+      `[data-collapsed="true"] .dsh-sidebar-footer-balance{display:none!important}`,
       `.dsh-hud-part{display:inline-flex;align-items:center;gap:6px;flex:none;min-width:0}`,
-      `.dsh-hud-value{color:#1d1b16}`,
+      // Numbers own a fixed-width, right-aligned slot: a value change updates
+      // text only and cannot rewrap the row (no layout shift per tick).
+      `.dsh-hud-num{display:inline-block;text-align:right;font-variant-numeric:tabular-nums;color:#1d1b16}`,
+      `.dsh-hud-context-value{min-width:4.2ch}`,
+      `.dsh-hud-cache-value{min-width:5.2ch}`,
+      `.dsh-hud-tps-value{min-width:3.6ch}`,
+      `.dsh-hud-cost-value{min-width:6.6ch}`,
+      `.dsh-hud-tps-unit{color:inherit}`,
+      `.dsh-hud-cost[data-price-source="none"] .dsh-hud-cost-value{opacity:.72}`,
+      `@media (prefers-reduced-motion:reduce){.dsh-hud-num{transition:none}}`,
       `.dsh-hud-ring{display:block;flex:none}`,
       `.dsh-hud-ring-progress{transition:stroke-dashoffset .3s ease}`,
       `.dsh-hud-agents{display:inline-flex;align-items:center;gap:5px;flex:none}`,
@@ -695,12 +717,12 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       `${DARK}{background-color:#24221f!important;color:#ece7dd!important}`,
       `${LIGHT} ._2H3hWW_root{background:#f5f3ee!important}`,
       `${DARK} ._2H3hWW_root{background:#24221f!important}`,
-      `${LIGHT} .RlGAzG_card{background:#f5f3ee!important}`,
-      `${DARK} .RlGAzG_card{background:#2b2825!important}`,
+      `${LIGHT} [class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]){background:#f5f3ee!important}`,
+      `${DARK} [class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]){background:#2b2825!important}`,
       `${LIGHT} .dsh-composer-tray{color:#7f7869!important}`,
       `${DARK} .dsh-composer-tray{color:#9a9285!important}`,
-      `${LIGHT} .dsh-hud-value,${LIGHT} .dsh-hud-agent-label,${LIGHT} .dsh-hud-context-label{color:#1d1b16!important}`,
-      `${DARK} .dsh-hud-value,${DARK} .dsh-hud-agent-label,${DARK} .dsh-hud-context-label{color:#ece7dd!important}`,
+      `${LIGHT} .dsh-hud-num,${LIGHT} .dsh-hud-agent-label,${LIGHT} .dsh-hud-context-label{color:#1d1b16!important}`,
+      `${DARK} .dsh-hud-num,${DARK} .dsh-hud-agent-label,${DARK} .dsh-hud-context-label{color:#ece7dd!important}`,
       `${LIGHT} .dsh-hud-ring-track{stroke:#e3ddd1!important}`,
       `${DARK} .dsh-hud-ring-track{stroke:#4a443c!important}`,
       `${LIGHT} .dsh-hud-ring-progress{stroke:#da7756!important}`,
@@ -719,10 +741,10 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       `${DARK} .dsh-review-head{background:#3a3732!important}`,
       `${LIGHT} .dsh-review-title,${LIGHT} .dsh-review-close{color:#1d1b16!important}`,
       `${DARK} .dsh-review-title,${DARK} .dsh-review-close{color:#ece7dd!important}`,
-      `.hIlkoa_sessionRow[data-dsh-status="waiting"] .hIlkoa_slot::before{background:#da7756!important;opacity:1!important}`,
-      `.hIlkoa_sessionRow[data-dsh-status="idle"] .hIlkoa_slot::before{background:#7f7869!important;opacity:.5!important}`,
-      `${LIGHT} .Hqq-bq_headline,${LIGHT} .Hqq-bq_titleGroup>span:not([class]){font-family:${UI_FONT}!important;color:#1d1b16!important}`,
-      `body[data-ds-dark-theme] .Hqq-bq_headline,body[data-ds-dark-theme] .Hqq-bq_titleGroup>span:not([class]){font-family:${UI_FONT}!important;color:#f0ede4!important}`,
+      `[class*="_sessionRow"][data-dsh-status="waiting"] [class*="_slot"]::before{background:#da7756!important;opacity:1!important}`,
+      `[class*="_sessionRow"][data-dsh-status="idle"] [class*="_slot"]::before{background:#7f7869!important;opacity:.5!important}`,
+      `${LIGHT} [class*="_composerHero"] [class*="_headline"],${LIGHT} [class*="_composerHero"] [class*="_titleGroup"]>span:not([class]){font-family:${UI_FONT}!important;color:#1d1b16!important}`,
+      `body[data-ds-dark-theme] [class*="_composerHero"] [class*="_headline"],body[data-ds-dark-theme] [class*="_composerHero"] [class*="_titleGroup"]>span:not([class]){font-family:${UI_FONT}!important;color:#f0ede4!important}`,
     ].join('\n')
 
     // ── Real session status layer ───────────────────────────────────────────
@@ -830,10 +852,14 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
       const apply = () => {
         scheduled = 0
-        const hero = document.querySelector('.Dc7zOa_composerHero')
+        const hero = document.querySelector('[class*="_composerHero"]')
+        document.documentElement.dataset.dshHero = hero === null ? 'false' : 'true'
         const card = document.querySelector('.duo-card')
-        const row = document.querySelector('[class*="heroWorkspaceRow"]')
-        const composer = document.querySelector('.RlGAzG_root')
+        const row = document.querySelector('[class*="_heroWorkspaceRow"]')
+        const composerCard = document.querySelector(
+          '[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])',
+        )
+        const composer = composerCard === null ? null : composerCard.closest('[class*="_root"]')
         if (hero === null || card === null || row === null || composer === null) {
           reset()
           return
@@ -845,34 +871,36 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           state.row = row
           state.composer = composer
         }
-        const sidebar = document.querySelector('._2H3hWW_root')
-        const sidebarRect = sidebar === null ? null : sidebar.getBoundingClientRect()
-        const sidebarHidden = sidebarRect === null || sidebarRect.width < 100
-        const sidebarRight = sidebarHidden ? 0 : sidebarRect.right
-        const viewportWidth = document.documentElement.clientWidth || window.innerWidth
-        const viewportHeight = document.documentElement.clientHeight || window.innerHeight
-        const contentWidth = Math.max(360, viewportWidth - sidebarRight)
-        // The usage card keeps the exact full-screen layout and is uniformly
-        // scaled down by the window: base width is the full-screen card width,
-        // height stays content-driven at that width (so the aspect ratio never
-        // changes), and a CSS transform scales card + type together.
+        // Stable anchors: the host exposes conversation regions as data
+        // attributes, so the column geometry survives every class-hash rebuild.
+        const seat = document.querySelector('[data-conversation-region="composer"]')
+        const chat = document.querySelector('[data-conversation-region="chat"]')
+        const seatRect = seat === null ? null : seat.getBoundingClientRect()
+        const chatRect = chat === null ? null : chat.getBoundingClientRect()
+        const contentLeft = Math.round(seatRect !== null ? seatRect.left : chatRect !== null ? chatRect.left : 0)
+        const contentWidth = Math.max(
+          360,
+          Math.round(
+            seatRect !== null
+              ? seatRect.width
+              : chatRect !== null
+                ? chatRect.width
+                : document.documentElement.clientWidth || window.innerWidth,
+          ),
+        )
+        // The composer keeps the host's max width when it has one, otherwise a
+        // comfortable reading column inside the chat area.
+        const composerWidth = Math.round(Math.min(945, Math.max(480, contentWidth * 0.662)))
+        const composerLeft = Math.round(contentLeft + (contentWidth - composerWidth) / 2)
+        // The usage card sits top-left, aligned with the composer column and
+        // scaled from the design reference width.
         const CARD_BASE_WIDTH = 427
         const REFERENCE_CONTENT_WIDTH = 1427
-        const availableWidth = sidebarHidden ? viewportWidth : contentWidth
-        // Keep the card readable in narrow windows: never shrink much below the
-        // full-screen look, and still guarantee it fits the available width.
-        const preferredScale = Math.min(1, Math.max(0.85, availableWidth / REFERENCE_CONTENT_WIDTH))
-        const fitScale = Math.max(0.3, (availableWidth - 32) / CARD_BASE_WIDTH)
+        const preferredScale = Math.min(1, Math.max(0.85, contentWidth / REFERENCE_CONTENT_WIDTH))
+        const fitScale = Math.max(0.3, (contentWidth - 32) / CARD_BASE_WIDTH)
         const cardScale = Math.min(preferredScale, fitScale)
-        const cardVisualWidth = CARD_BASE_WIDTH * cardScale
-        // No sidebar → centre the card in the full window; with a sidebar keep
-        // the full-screen left offset, also scaled.
-        const cardLeft = sidebarHidden
-          ? Math.round((viewportWidth - cardVisualWidth) / 2)
-          : Math.round(sidebarRight + 82 * cardScale)
-        const cardTop = Math.round(Math.max(16, viewportHeight * 0.123))
-        const composerWidth = Math.round(Math.min(945, Math.max(480, contentWidth * 0.662)))
-        const composerLeft = Math.round(sidebarRight + (contentWidth - composerWidth) / 2)
+        const cardLeft = composerLeft
+        const cardTop = 16
         // Align the menu row's content with the composer card's left/right edges:
         // row padding is 16px, so the row box spans the whole composer root.
         const rowWidth = composerWidth
@@ -949,14 +977,14 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     // The workspace and mode pickers sit directly above the composer now; their
     // host portals still open downward over the input. Re-anchor any open hero
     // menu above its trigger so the option list extends upward.
-    const HERO_MENU_TRIGGER_SELECTOR = '.Hqq-bq_workspace, [class*="_oGoKq_seat"]'
-    const HERO_MENU_PANEL_SELECTOR = '[role="menu"][class*="_portal_"]'
+    const HERO_MENU_TRIGGER_SELECTOR = '[class*="_workspace"]:not([class*="_workspaceRow"]):not([class*="_workspaceLabel"]), [class*="_seat"]:not([class*="_seatIcon"]):not([class*="_seatLabel"])'
+    const HERO_MENU_PANEL_SELECTOR = '[role="menu"][class*="_portal"]'
 
     function mountHeroMenusUpward() {
       let scheduled = 0
       const reposition = () => {
         scheduled = 0
-        const hero = document.querySelector('.Dc7zOa_composerHero')
+        const hero = document.querySelector('[class*="_composerHero"]')
         if (hero === null) return
         const triggers = [...hero.querySelectorAll(HERO_MENU_TRIGGER_SELECTOR)]
           .filter((trigger) => trigger.getAttribute('aria-expanded') === 'true')
@@ -1068,8 +1096,22 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     // page. Value comes from the hidden legacy bar (`余额 …`).
     const SIDEBAR_BALANCE_CLASS = 'dsh-sidebar-footer-balance'
 
+    // The host's CSS-module class names are build hashes and change between
+    // releases (`wCInkW_triggerRow` vanished in the 3.x client), so the account
+    // launcher is located by its stable semantics instead: the sidebar button
+    // that opens the account menu carries data-signed-out + aria-haspopup.
+    const ACCOUNT_TRIGGER_SELECTOR = 'button[data-signed-out][aria-haspopup="menu"]'
+
+    function findAccountTrigger() {
+      const candidates = document.querySelectorAll(ACCOUNT_TRIGGER_SELECTOR)
+      for (const candidate of candidates) {
+        if (candidate.querySelector(':scope > span') !== null) return candidate
+      }
+      return candidates.length > 0 ? candidates[0] : null
+    }
+
     function ensureSidebarBalance() {
-      const row = document.querySelector('.wCInkW_triggerRow')
+      const row = findAccountTrigger()
       if (row === null) return null
       let node = row.querySelector(':scope > .' + SIDEBAR_BALANCE_CLASS)
       if (node === null) {
@@ -1103,9 +1145,9 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     // A quiet 16px line rendered directly below the composer card (8px gap),
     // two ends aligned. Left: context ring + cache countdown. Right: session
     // cost, account balance and agents. The cost/balance values are scraped
-    // from the old bottom bar (`.RlGAzG_dock`, kept mounted but display:none),
+    // from the old bottom bar (`[class*="_root"]:has([data-lexical-editor="true"]) [class*="_dock"]`, kept mounted but display:none),
     // so the legacy plugin keeps computing them while the new tray stays on a
-    // single line. Injected as a sibling of `.RlGAzG_card`, so the card never
+    // single line. Injected as a sibling of `[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])`, so the card never
     // grows; a MutationObserver re-creates it when the composer re-renders.
     const TRAY_CLASS = 'dsh-composer-tray'
     const TRAY_RING_RADIUS = 4.6
@@ -1128,13 +1170,13 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       ].join('')
       tray.innerHTML = [
         '<div class="dsh-tray-group dsh-tray-left">',
-        '<span class="dsh-hud-part dsh-hud-context">' + ring + '<span class="dsh-hud-context-label">上下文 —</span></span>',
-        '<span class="dsh-hud-part dsh-hud-cache">缓存命中 —</span>',
+        '<span class="dsh-hud-part dsh-hud-context">' + ring + '<span class="dsh-hud-context-label">上下文 <span class="dsh-hud-num dsh-hud-context-value">—</span></span></span>',
+        '<span class="dsh-hud-part dsh-hud-cache"><span class="dsh-hud-cache-label">缓存命中</span> <span class="dsh-hud-num dsh-hud-cache-value">—</span></span>',
         '</div>',
         '<div class="dsh-tray-group dsh-tray-right">',
-        '<span class="dsh-hud-part dsh-hud-cost">本次花费 <span class="dsh-hud-value">' + TRAY_COST_FALLBACK + '</span></span>',
+        '<span class="dsh-hud-part dsh-hud-cost"><span class="dsh-hud-cost-label">本次花费</span> <span class="dsh-hud-num dsh-hud-cost-value">' + TRAY_COST_FALLBACK + '</span></span>',
         '<span class="dsh-tray-sep" aria-hidden="true">·</span>',
-        '<span class="dsh-hud-part dsh-hud-tps"><span class="dsh-hud-value">—</span></span>',
+        '<span class="dsh-hud-part dsh-hud-tps"><span class="dsh-hud-num dsh-hud-tps-value">—</span><span class="dsh-hud-tps-unit">tok/s</span></span>',
         '<span class="dsh-tray-sep dsh-tray-sep-agents" aria-hidden="true">·</span>',
         '<span class="dsh-hud-part dsh-hud-agents" style="display:none"><span class="dsh-hud-agent-dot" aria-hidden="true"></span><span class="dsh-hud-agent-label">0 Agents</span></span>',
         '</div>',
@@ -1142,11 +1184,79 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       return tray
     }
 
+    // Numbers get fixed-width slots so a value change never rewraps the row,
+    // and cached node references so a 2 Hz tick costs no querySelector sweep.
+    const hudTrayParts = new WeakMap()
+
+    /** Child nodes of one tray, resolved once and cached. */
+    function hudPartsOf(tray) {
+      let parts = hudTrayParts.get(tray)
+      if (parts !== undefined) return parts
+      parts = {
+        cachePart: tray.querySelector('.dsh-hud-cache'),
+        cache: tray.querySelector('.dsh-hud-cache-value'),
+        costPart: tray.querySelector('.dsh-hud-cost'),
+        cost: tray.querySelector('.dsh-hud-cost-value'),
+        tpsPart: tray.querySelector('.dsh-hud-tps'),
+        tps: tray.querySelector('.dsh-hud-tps-value'),
+        progress: tray.querySelector('.dsh-hud-ring-progress'),
+        contextPart: tray.querySelector('.dsh-hud-context'),
+        context: tray.querySelector('.dsh-hud-context-value'),
+        agentsPart: tray.querySelector('.dsh-hud-agents'),
+        agentsSep: tray.querySelector('.dsh-tray-sep-agents'),
+        agentsLabel: tray.querySelector('.dsh-hud-agent-label'),
+      }
+      hudTrayParts.set(tray, parts)
+      return parts
+    }
+
+    const HUD_REDUCED_MOTION = (() => {
+      try {
+        return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true
+      } catch {
+        return false
+      }
+    })()
+
+    /** Fade/slide one number on change: opacity + transform only, no reflow. */
+    function flashHudValue(element) {
+      if (HUD_REDUCED_MOTION || element === null || typeof element.animate !== 'function') return
+      try {
+        element.animate(
+          [{ opacity: 0.35, transform: 'translateY(1px)' }, { opacity: 1, transform: 'none' }],
+          { duration: 150, easing: 'ease-out' },
+        )
+      } catch {
+        // Animation is cosmetic only.
+      }
+    }
+
+    /** Write text only when it changed, then flash the number. */
+    function setHudText(element, text) {
+      if (element === null || element === undefined) return
+      if (element.textContent === text) return
+      element.textContent = text
+      flashHudValue(element)
+    }
+
+    /** Write a tooltip only when it changed. */
+    function setHudTitle(element, title) {
+      if (element === null || element === undefined) return
+      const next = typeof title === 'string' ? title : ''
+      if (element.getAttribute('title') === next) return
+      if (next === '') element.removeAttribute('title')
+      else element.setAttribute('title', next)
+    }
+
     const BALANCE_CACHE_KEY = 'dsh-theme-last-balance'
     const COST_CACHE_KEY = 'dsh-theme-last-session-cost'
     const SESSION_COST_ROUTE = '/api/dsh-claude-code-desktop-theme/usage-summary'
-    let sessionCostText = null
-    let sessionCostId = null
+    /** Client-side fetch floor; the host route has its own 5 s fold cache. */
+    const SESSION_COST_THROTTLE_MS = 2000
+    // Display state of the host estimate. `text` always carries its provenance
+    // (a leading `~` for estimates); bottom-info-bar's actual charge never
+    // enters this object, it is read straight from the hidden dock per tick.
+    const sessionCost = { id: null, text: null, title: '', source: null, estimated: false }
     let sessionCostFetchedAt = 0
     let sessionCostPending = false
     let lastKnownBalance = null
@@ -1160,7 +1270,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
     /** Read cost / balance / tokens-per-second out of the hidden legacy bar. */
     function readLegacyStats() {
-      const dock = document.querySelector('.RlGAzG_dock')
+      const dock = document.querySelector('[class*="_root"]:has([data-lexical-editor="true"]) [class*="_dock"]')
       const text = dock === null ? '' : (dock.textContent || '')
       const pick = (pattern) => {
         const match = text.match(pattern)
@@ -1189,154 +1299,361 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       }
     }
 
-    // ── Boot animation ──────────────────────────────────────────────────────
-    // Replaces the Harness boot curtain with a handwritten brand line. The
-    // built-in [data-dsh-boot] node is removed as soon as this plugin activates
-    // so only this animation is visible. Plays once per renderer window.
-    const BOOT_ONCE_KEY = 'dsh-theme-boot-v3-played'
-    const BOOT_DISABLED_KEY = 'dsh-theme-boot-disabled'
-    const BOOT_DURATION_MS = 2400
+    /* ── Plugin-page update check ─────────────────────────────────────────── */
 
-    const bootLine = (text, className, startDelay) => {
-      const chars = Array.from(text).map((char, index) =>
-        `<span class="dsh-boot-char" style="--dsh-boot-delay:${startDelay + index * 42}ms">${char === ' ' ? '&nbsp;' : char}</span>`,
-      ).join('')
-      return `<div class="dsh-boot-line ${className}">${chars}</div>`
-    }
+    const UPDATE_STATUS_ROUTE = '/api/dsh-claude-code-desktop-theme/update-status'
+    const UPDATE_APPLY_ROUTE = '/api/dsh-claude-code-desktop-theme/update-apply'
+    const UPDATE_ROW_ID = 'dsh-theme-update-row'
+    const UPDATE_PACKAGE_NAME = 'dsh-claude-code-desktop-theme'
 
-    function mountBootAnimation() {
-      // The Host injects the primary boot curtain into index.html so it paints
-      // before the Harness boot card. Adopt it instead of bailing out: if the
-      // host inline script was blocked (CSP) or HMR left a stale node, the old
-      // no-op path kept the curtain on screen forever.
-      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
-      const bootDuration = reduced ? 900 : BOOT_DURATION_MS
-      const dropAllBootOverlays = (fade) => {
-        for (const node of document.querySelectorAll('#dsh-boot-overlay')) {
-          if (fade === true) {
-            try { node.dataset.leaving = '1' } catch { /* ignore */ }
-          } else {
-            node.remove()
-          }
-        }
-        if (fade === true) {
-          window.setTimeout(() => {
-            for (const node of document.querySelectorAll('#dsh-boot-overlay')) node.remove()
-          }, 460)
-        }
-      }
+    /**
+     * DSH offers an update action only for its own optional bundles; a third
+     * party profile plugin has to be uninstalled and reinstalled by hand. This
+     * adds a small status row to our own card on the plugin page: it asks the
+     * host for the installed and published versions, then runs the same
+     * `pnpm add` the plugin manager would run.
+     *
+     * The row anchors on the "当前版本 / Current version" line, the one label
+     * this page renders for every profile plugin. React may re-render the card
+     * at any time, so a mutation observer puts the row back.
+     */
+    function mountUpdatePanel() {
+      const ROUTES = { status: UPDATE_STATUS_ROUTE, apply: UPDATE_APPLY_ROUTE }
+      const state = { phase: 'idle', info: null, message: '', failedCommand: '' }
+      let disposed = false
+      let debounce = null
 
-      const existing = document.getElementById('dsh-boot-overlay')
-      if (existing !== null) {
-        // The Host owns the normal close, because its timer starts with the
-        // document and already accounts for the reveal. Only guard against a
-        // curtain nobody removes (blocked inline script, HMR leftovers). The
-        // old `bootDuration - performance.now()` math closed it immediately,
-        // since performance.now() already exceeds the animation length by the
-        // time plugins activate.
-        let closed = false
-        const close = () => {
-          if (closed) return
-          closed = true
-          dropAllBootOverlays(true)
-        }
-        const adoptWatchdog = window.setTimeout(() => dropAllBootOverlays(false), bootDuration + 700)
-        existing.addEventListener('click', close)
-        const onKey = (event) => {
-          if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') close()
-        }
-        window.addEventListener('keydown', onKey)
-        return () => {
-          window.clearTimeout(adoptWatchdog)
-          window.removeEventListener('keydown', onKey)
-          dropAllBootOverlays(false)
-        }
-      }
-      if (window.sessionStorage.getItem(BOOT_ONCE_KEY) === '1') return () => {}
-      if (window.localStorage.getItem(BOOT_DISABLED_KEY) === '1') return () => {}
-      // A late activation must not replay the curtain over an app the user is
-      // already using: if the Host injection were missing and this client
-      // mounted seconds later, building a second curtain here would look like
-      // a spontaneous flash. The fallback only covers a genuine first paint.
-      if (performance.now() > 3500) return () => {}
-
-      // The stock Harness boot curtain is a centered card with a spinner and a
-      // "Loading plugins..." hint. Remove it before painting our own screen.
-      document.querySelectorAll('[data-dsh-boot]').forEach((node) => {
+      const post = async (route) => {
+        const response = await fetch(route, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: '{}',
+        })
+        let payload = null
         try {
-          node.remove()
+          payload = await response.json()
         } catch {
-          // A host-owned node may already be detached.
+          throw new Error(`HTTP ${response.status}`)
         }
-      })
+        if (payload?.ok !== true) throw new Error(payload?.error?.message ?? `HTTP ${response.status}`)
+        return payload.value
+      }
 
-      const overlay = document.createElement('div')
-      overlay.id = 'dsh-boot-overlay'
-      overlay.setAttribute('role', 'status')
-      overlay.setAttribute('aria-label', 'Hello, can I do for you?')
-      overlay.innerHTML = `
-        <style>
-          #dsh-boot-overlay{position:fixed;inset:0;z-index:2147483600;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f5f3ee;color:#1d1b16;opacity:1;animation:dsh-boot-curtain 2.75s cubic-bezier(.4,0,.2,1) both;overflow:hidden;contain:paint;font-family:Georgia,"Palatino Linotype","Times New Roman",serif;user-select:none}
-          #dsh-boot-overlay[data-leaving="1"]{opacity:0!important;pointer-events:none;transition:opacity .32s ease}
-          #dsh-boot-overlay .dsh-boot-type{display:flex;flex-direction:column;align-items:center;line-height:1;transition:opacity .14s ease}
-          #dsh-boot-overlay .dsh-boot-line{display:block;white-space:nowrap;font-family:Georgia,"Palatino Linotype","Times New Roman",serif!important;font-size:clamp(40px,6.2vw,84px);line-height:1.04;letter-spacing:.01em}
-          #dsh-boot-overlay .dsh-boot-char{font-family:Georgia,"Palatino Linotype","Times New Roman",serif!important}
-          #dsh-boot-overlay .dsh-boot-line--hello{color:#1d1b16;font-style:normal;font-weight:400}
-          #dsh-boot-overlay .dsh-boot-line--question{margin-top:.08em;color:#a94c2b;font-style:italic;font-weight:400;opacity:0;animation:dsh-boot-reveal .52s cubic-bezier(.16,1,.3,1) .72s both}
-          #dsh-boot-overlay .dsh-boot-char{display:inline-block;opacity:0;transform-origin:50% 80%;backface-visibility:hidden;will-change:transform,opacity;animation:dsh-boot-write .4s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--dsh-boot-delay,0ms)}
-          #dsh-boot-overlay .dsh-boot-rule{width:clamp(48px,5vw,84px);height:2px;margin-top:26px;border-radius:1px;background:#a94c2b;opacity:.32;transform:scaleX(0);transform-origin:left;animation:dsh-boot-rule .6s cubic-bezier(.16,1,.3,1) 1.05s both;transition:opacity .14s ease}
-          #dsh-boot-overlay .dsh-boot-hint{position:absolute;bottom:44px;font-family:"SF Mono","Consolas",monospace!important;font-size:11px;letter-spacing:.08em;color:#9a9080;opacity:0;animation:dsh-boot-hint .3s ease 1s both}
-          #dsh-boot-overlay[data-leaving="1"] .dsh-boot-type,
-          #dsh-boot-overlay[data-leaving="1"] .dsh-boot-rule,
-          #dsh-boot-overlay[data-leaving="1"] .dsh-boot-hint{opacity:0!important;transition:opacity .14s ease!important}
-          @keyframes dsh-boot-write{0%{opacity:0;transform:translate3d(0,7px,0) rotate(-3deg) scale(.96)}60%{opacity:1}100%{opacity:1;transform:translate3d(0,0,0) rotate(0) scale(1)}}
-          @keyframes dsh-boot-reveal{0%{opacity:0;transform:translate3d(0,10px,0)}100%{opacity:1;transform:translate3d(0,0,0)}}
-          @keyframes dsh-boot-rule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-          @keyframes dsh-boot-hint{from{opacity:0}to{opacity:.85}}
-          @keyframes dsh-boot-curtain{0%{opacity:1}87%{opacity:1}100%{opacity:0;visibility:hidden}}
-          @media (prefers-reduced-motion: reduce){
-            #dsh-boot-overlay{animation-duration:1.2s}
-            #dsh-boot-overlay .dsh-boot-char{opacity:1;animation:none!important;filter:none!important;transform:none!important}
-            #dsh-boot-overlay .dsh-boot-line--question{opacity:1;animation:none!important;transform:none!important}
-            #dsh-boot-overlay .dsh-boot-rule{transform:none;animation:none!important;opacity:.32}
-            #dsh-boot-overlay .dsh-boot-hint{opacity:.85;animation:none!important}
+      /** 复制一条命令；剪贴板不可用时退回选中式 texarea。 */
+      const copyText = async (text) => {
+        try {
+          if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            await navigator.clipboard.writeText(text)
+            return
           }
-        </style>
-        <div class="dsh-boot-type">
-          ${bootLine('Hello,', 'dsh-boot-line--hello', 0)}
-          <div class="dsh-boot-line dsh-boot-line--question">can I do for you?</div>
-        </div>
-        <div class="dsh-boot-rule"></div>
-        <div class="dsh-boot-hint">点击任意处跳过</div>
-      `
-      document.body.appendChild(overlay)
-      try {
-        window.sessionStorage.setItem(BOOT_ONCE_KEY, '1')
-      } catch {
-        // Private mode: play on every load is preferable to crashing.
+        } catch {
+          // fall through to the legacy path
+        }
+        try {
+          const area = document.createElement('textarea')
+          area.value = text
+          area.style.cssText = 'position:fixed;left:-9999px;top:0'
+          document.body.append(area)
+          area.select()
+          document.execCommand('copy')
+          area.remove()
+        } catch {
+          // nothing else to try
+        }
       }
-      let finished = false
-      const finish = () => {
-        if (finished) return
-        finished = true
-        try { overlay.dataset.leaving = '1' } catch { /* ignore */ }
-        window.setTimeout(() => overlay.remove(), 460)
+
+      const makeButton = (label, onClick, disabled) => {
+        const node = document.createElement('button')
+        node.type = 'button'
+        node.textContent = label
+        node.disabled = disabled === true
+        node.style.cssText = [
+          'padding:3px 12px',
+          'border-radius:6px',
+          'border:1px solid #d97757',
+          'background:#d97757',
+          'color:#fff',
+          'font:inherit',
+          'font-size:12px',
+          'line-height:20px',
+          'cursor:pointer',
+          node.disabled ? 'opacity:.55;cursor:default' : '',
+        ]
+          .filter((rule) => rule !== '')
+          .join(';')
+        if (!node.disabled) node.addEventListener('click', onClick)
+        return node
       }
-      const duration = reduced ? 900 : BOOT_DURATION_MS
-      const timer = window.setTimeout(finish, duration)
-      // Hard cap: finish() may never run if the window is frozen or a listener
-      // throws. The curtain must not outlive the boot in any case.
-      const watchdog = window.setTimeout(() => overlay.remove(), duration + 1800)
-      const onKey = (event) => {
-        if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') finish()
+
+      const describe = () => {
+        const info = state.info
+        if (state.phase === 'loading') return '正在查询 npm registry…'
+        if (state.phase === 'applying') return '正在下载并安装…'
+        if (state.message !== '') return state.message
+        if (info === null) return '正在读取版本…'
+        const failed = info.latest === null
+          ? ` · 查询 npm 失败${info.error ? `：${String(info.error).slice(0, 80)}` : ''}`
+          : ''
+        // link 模式不能走 npm 安装，但仍然要告诉作者「本地和已发布谁更新」。
+        if (info.source === 'link') {
+          if (info.latest === null) return `本地开发 ${info.current}（link）${failed}`
+          return info.hasUpdate === true
+            ? `本地开发 ${info.current}（link）· npm 已发布 ${info.latest}（本地落后，需在该目录 git pull）`
+            : `本地开发 ${info.current}（link）· npm 最新 ${info.latest}（已同步或本地更新）`
+        }
+        if (info.source === 'unknown') return `当前 ${info.current} · 无法确定安装来源${failed}`
+        if (info.latest === null) return `当前 ${info.current}${failed}`
+        const pending = typeof info.installed === 'string' && info.installed !== info.current
+          ? `（已安装 ${info.installed}，重启后生效）`
+          : ''
+        if (info.hasUpdate === true) return `当前 ${info.current}${pending} · 最新 ${info.latest}`
+        return `当前 ${info.current}${pending} · 已是最新 ${info.latest}`
       }
-      overlay.addEventListener('click', finish)
-      window.addEventListener('keydown', onKey)
+
+      /**
+       * 观察期说明：pnpm 11 默认不解析发布未满 24 小时的版本，普通安装会
+       * 静默落到旧版。面板必须把这件事讲出来，否则「更新了却没变化」会被
+       * 当成插件坏了。
+       */
+      const describeNote = () => {
+        const info = state.info
+        if (info === null || info.cooldownActive !== true || info.canApply !== true) return ''
+        const until = typeof info.cooldownUntil === 'string' ? new Date(info.cooldownUntil) : null
+        const when = until === null || Number.isNaN(until.getTime()) ? '' : until.toLocaleString()
+        return (
+          `${info.latest} 发布未满 24 小时：直接安装 latest 会解析到旧版。` +
+          `下方按钮按精确版本 ${info.latest} 安装，可跳过等待` +
+          (when === '' ? '。' : `；普通安装需等到 ${when}。`)
+        )
+      }
+
+      const render = (panel) => {
+        panel.textContent = ''
+        const dark = document.body.hasAttribute('data-ds-dark-theme')
+        panel.style.cssText = [
+          'display:flex',
+          'flex-direction:column',
+          'align-items:stretch',
+          'justify-content:flex-start',
+          'gap:6px',
+          'width:100%',
+          'box-sizing:border-box',
+          'margin:10px 0 0',
+          'padding:8px 12px',
+          'border:1px solid transparent',
+          'border-radius:8px',
+          `background:${dark ? '#2a2723' : '#faf8f2'}`,
+          `border-color:${dark ? '#3a352e' : '#ece5d8'}`,
+          `color:${dark ? '#c9c2b4' : '#6b6459'}`,
+          'font-size:12px',
+          'line-height:1.5',
+          'text-align:left',
+          'min-height:0',
+        ].join(';')
+
+        // 宿主 `.facts div` 会给区域内每个 div 加 display:flex / space-between /
+        // align-items:center，必须逐项覆盖，否则文字被居中、按钮被顶到最右。
+        const row = document.createElement('div')
+        row.style.cssText =
+          'display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:wrap;' +
+          'width:100%;padding:0;border-bottom:none;min-height:0;text-align:left'
+        const label = document.createElement('span')
+        label.style.cssText = 'flex:1 1 auto;min-width:200px;text-align:left'
+        label.textContent = describe()
+        row.append(label)
+        panel.append(row)
+
+        const info = state.info
+        if (state.phase === 'loading' || state.phase === 'applying') {
+          row.append(makeButton(state.phase === 'loading' ? '检查中' : '更新中', () => {}, true))
+          return
+        }
+        if (info !== null && info.source === 'registry' && info.hasUpdate === true) {
+          row.append(makeButton(`更新到 ${info.latest}`, () => void apply(info), false))
+          row.append(makeButton('忽略', () => {
+            state.phase = 'idle'
+            state.message = '已忽略本次更新'
+            const current = document.getElementById(UPDATE_ROW_ID)
+            if (current !== null) render(current)
+          }, false))
+        } else if (info !== null && info.source === 'registry') {
+          row.append(makeButton('重新检查', () => void check(), false))
+        } else if (info !== null && info.source === 'link') {
+          // 工作副本的「更新」是拉代码；把命令复制好，省得用户自己拼路径。
+          const workCopy =
+            typeof info.spec === 'string' && info.spec.startsWith('link:')
+              ? info.spec.slice('link:'.length)
+              : null
+          row.append(makeButton('复制 git pull', () => {
+            const command = workCopy === null ? 'git pull' : `git -C "${workCopy}" pull`
+            void copyText(command)
+            state.message = `已复制：${command}`
+            const current = document.getElementById(UPDATE_ROW_ID)
+            if (current !== null) render(current)
+          }, false))
+          row.append(makeButton('重新检查', () => void check(), false))
+        } else if (info !== null) {
+          row.append(makeButton('重新检查', () => void check(), false))
+        }
+
+        // 失败时给一条能直接粘贴的命令，不让用户卡在「更新失败」四个字上。
+        if (state.failedCommand !== '') {
+          row.append(makeButton('复制安装命令', () => {
+            void copyText(state.failedCommand)
+            state.message = '安装命令已复制，可在 profile 目录执行'
+            const current = document.getElementById(UPDATE_ROW_ID)
+            if (current !== null) render(current)
+          }, false))
+        }
+
+        const note = describeNote()
+        if (note !== '') {
+          const hint = document.createElement('div')
+          hint.style.cssText =
+            'display:block;width:100%;padding:0;border-bottom:none;min-height:0;text-align:left;' +
+            `opacity:.85;font-size:12px;${dark ? 'color:#b8b0a2' : 'color:#7a7266'}`
+          hint.textContent = note
+          panel.append(hint)
+        }
+      }
+
+      const paint = () => {
+        const panel = document.getElementById(UPDATE_ROW_ID)
+        if (panel !== null) render(panel)
+      }
+
+      const check = async () => {
+        if (disposed || state.phase === 'loading' || state.phase === 'applying') return
+        state.phase = 'loading'
+        state.message = ''
+        state.failedCommand = ''
+        paint()
+        try {
+          state.info = await post(ROUTES.status)
+          state.phase = 'idle'
+        } catch (error) {
+          state.phase = 'idle'
+          state.message = `检查失败：${String(error?.message ?? error)}`
+        }
+        paint()
+      }
+
+      const apply = async (info) => {
+        if (disposed || state.phase === 'applying') return
+        const cooldown = info.cooldownActive === true
+          ? '\n\n该版本发布未满 24 小时，直接用 pnpm 装 latest 会解析到旧版；本次按精确版本安装，可跳过观察期。'
+          : ''
+        const ok = window.confirm(
+          `更新到 ${info.latest}？\n\n当前 ${info.current}，将以精确版本 ${info.latest} 安装。` +
+            `${cooldown}\n\n安装完成后需要重启 DeepSeek Harness 才会生效。`,
+        )
+        if (ok !== true) return
+        state.phase = 'applying'
+        state.message = ''
+        state.failedCommand = ''
+        paint()
+        try {
+          const result = await post(ROUTES.apply)
+          state.phase = 'idle'
+          if (result?.ok === true) {
+            const to = typeof result.to === 'string' ? result.to : info.latest
+            if (result.alreadyInstalled === true) {
+              state.message = `已是最新 ${to}${result.restartRequired === true ? '，重启后生效' : ''}`
+            } else {
+              state.message = `已安装 ${to}（校验通过）${result.restartRequired === true ? '，重启 DeepSeek Harness 后生效' : ''}`
+            }
+            state.info = {
+              ...info,
+              current: to,
+              installed: to,
+              hasUpdate: false,
+              cooldownActive: false,
+              cooldownUntil: null,
+            }
+          } else {
+            const reason = result?.reason
+            const hint =
+              reason === 'link'
+                ? '本地 link 模式：请到该目录执行 git pull'
+                : reason === 'verify'
+                  ? '安装后校验失败：磁盘上的版本没有变化'
+                  : reason === 'registry'
+                    ? '无法读取 npm 上的最新版本'
+                    : reason === 'pnpm'
+                      ? 'pnpm 安装失败'
+                      : '未知原因'
+            const detail = result?.message ? `（${String(result.message).slice(0, 160)}）` : ''
+            state.message = `更新失败：${hint}${detail}`
+            if (reason !== 'link') {
+              const profile = typeof info.profile === 'string' && info.profile !== '' ? info.profile : '<profile>'
+              state.failedCommand = `pnpm add ${UPDATE_PACKAGE_NAME}@${info.latest} --dir ${profile}`
+            }
+          }
+        } catch (error) {
+          state.phase = 'idle'
+          state.message = `更新失败：${String(error?.message ?? error)}`
+          const profile = typeof info.profile === 'string' && info.profile !== '' ? info.profile : '<profile>'
+          state.failedCommand = `pnpm add ${UPDATE_PACKAGE_NAME}@${info.latest} --dir ${profile}`
+        }
+        paint()
+      }
+
+      const anchorFor = () => {
+        const nodes = document.querySelectorAll('div,dl,li')
+        for (const node of nodes) {
+          if (node.childElementCount > 2) continue
+          const text = (node.textContent ?? '').trim()
+          if (text.length > 24) continue
+          if (text.startsWith('当前版本') || /^Current version/i.test(text)) return node
+        }
+        return null
+      }
+
+      const ensure = () => {
+        if (disposed) return
+        const existing = document.getElementById(UPDATE_ROW_ID)
+        if (existing !== null) {
+          render(existing)
+          return
+        }
+        // Cheap gate: only the plugin page renders this label, so the full
+        // scan below never runs on a chat session.
+        const body = document.body.textContent ?? ''
+        if (!body.includes('当前版本') && !body.includes('Current version')) return
+        const anchor = anchorFor()
+        if (anchor === null) return
+        // 目标是「当前版本」那一整行（dt + dd 的容器），这样面板作为 .facts
+        // 的直接子项独占一行；若只匹配到 dt，就上提到它的行容器。
+        const row =
+          anchor.tagName === 'DT' || anchor.tagName === 'DD'
+            ? (anchor.parentElement ?? anchor)
+            : anchor
+        const panel = document.createElement('div')
+        panel.id = UPDATE_ROW_ID
+        row.insertAdjacentElement('afterend', panel)
+        render(panel)
+      }
+
+      const schedule = () => {
+        if (disposed || debounce !== null) return
+        debounce = window.setTimeout(() => {
+          debounce = null
+          ensure()
+        }, 400)
+      }
+
+      const observer = new MutationObserver(schedule)
+      observer.observe(document.body, { childList: true, subtree: true })
+
+      ensure()
+      void check()
+
       return () => {
-        window.clearTimeout(timer)
-        window.clearTimeout(watchdog)
-        window.removeEventListener('keydown', onKey)
-        overlay.remove()
+        disposed = true
+        observer.disconnect()
+        if (debounce !== null) window.clearTimeout(debounce)
+        const panel = document.getElementById(UPDATE_ROW_ID)
+        if (panel !== null) panel.remove()
       }
     }
 
@@ -1350,8 +1667,15 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       try {
         const cached = JSON.parse(window.localStorage.getItem(COST_CACHE_KEY) ?? 'null')
         if (cached !== null && typeof cached === 'object' && typeof cached.text === 'string') {
-          sessionCostText = cached.text
-          sessionCostId = typeof cached.sessionId === 'string' ? cached.sessionId : null
+          // Everything restored from this key came from the estimate route, so
+          // it must never resurface as an actual charge: an older cache row
+          // without the `~` marker is upgraded here.
+          const cachedText = cached.text
+          sessionCost.id = typeof cached.sessionId === 'string' ? cached.sessionId : null
+          sessionCost.text = cachedText.startsWith('~') ? cachedText : '~' + cachedText
+          sessionCost.estimated = true
+          sessionCost.source = typeof cached.source === 'string' ? cached.source : null
+          sessionCost.title = '上次刷新得到的估算金额，正在重新核对'
         }
       } catch {
         // The cost cache is best effort.
@@ -1362,7 +1686,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         const sessionId = bridge.currentSessionId
         if (typeof sessionId !== 'string' || sessionId === '') return
         if (sessionCostPending) return
-        if (sessionCostId === sessionId && Date.now() - sessionCostFetchedAt < 5000) return
+        if (sessionCost.id === sessionId && Date.now() - sessionCostFetchedAt < SESSION_COST_THROTTLE_MS) return
         sessionCostPending = true
         fetch(SESSION_COST_ROUTE, {
           method: 'POST',
@@ -1373,17 +1697,30 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           .then((payload) => {
             const cost = payload?.value?.sessionCost
             if (cost === null || typeof cost !== 'object') return
-            if (cost.sessionId !== sessionId || cost.priced !== true || typeof cost.cost !== 'number') return
-            const symbol = cost.currency === 'USD' ? '$' : '¥'
-            const digits = cost.cost > 0 && cost.cost < 0.01 ? 4 : 2
-            sessionCostText = symbol + cost.cost.toLocaleString('en-US', {
-              minimumFractionDigits: digits,
-              maximumFractionDigits: digits,
-            })
-            sessionCostId = sessionId
+            if (cost.sessionId !== sessionId) return
             sessionCostFetchedAt = Date.now()
+            sessionCost.id = sessionId
+            const display = hudCostDisplay(cost)
+            if (display === null) {
+              // `priced: false` means the log carries no model information at
+              // all: an honest "—" beats a made-up number.
+              sessionCost.text = null
+              sessionCost.title = '无法定价：会话里没有可定价的模型信息'
+              sessionCost.source = null
+              sessionCost.estimated = false
+              return
+            }
+            sessionCost.text = display.text
+            sessionCost.title = display.title
+            sessionCost.source = display.source
+            sessionCost.estimated = display.text.startsWith('~')
             try {
-              window.localStorage.setItem(COST_CACHE_KEY, JSON.stringify({ sessionId, text: sessionCostText }))
+              window.localStorage.setItem(COST_CACHE_KEY, JSON.stringify({
+                sessionId,
+                text: display.text,
+                estimated: sessionCost.estimated,
+                source: display.source,
+              }))
             } catch {
               // Best effort only.
             }
@@ -1396,118 +1733,247 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           })
       }
 
-      const render = () => {
+      /** Fold every HUD reading into one display model (no DOM writes). */
+      const readModel = () => {
         const money = readLegacyStats()
-        refreshSessionCost()
-        // tok/s is live: only a running Session has a decode speed, otherwise 0.
-        const sessionStatus = bridge.sessions?.statuses?.get(bridge.currentSessionId) ?? null
-        const sessionSummary = bridge.sessions?.byId?.[bridge.currentSessionId] ?? null
+        const sessionId = bridge.currentSessionId
+        const sessionStatus = bridge.sessions?.statuses?.get(sessionId) ?? null
+        const sessionSummary = bridge.sessions?.byId?.[sessionId] ?? null
         const running = sessionStatus?.running ?? sessionSummary?.running ?? false
-        const computedTps = typeof bridge.tokensPerSecond === 'number' ? bridge.tokensPerSecond : null
-        const tpsText = running
-          ? (computedTps !== null && computedTps > 0 ? computedTps + ' tok/s' : (money.tps ?? '0 tok/s'))
-          : '0 tok/s'
-        const cachedHit = typeof bridge.cacheHitPercent === 'number'
-          ? bridge.cacheHitPercent.toFixed(1).replace(/\.0$/, '') + '%'
-          : null
-        const cacheText = cachedHit !== null
-          ? '缓存命中 ' + cachedHit
-          : (money.cacheHit === null ? '缓存命中 —' : '缓存命中 ' + money.cacheHit)
-        const context = bridge.context
-        const percent = context === null ? 0 : context.percent
-        const contextLabelText = context === null ? '上下文 —' : '上下文 ' + percent + '%'
-        const contextTitle = context === null
-          ? ''
-          : formatTokens(context.usedTokens) + ' / ' + formatTokens(context.contextWindow) + ' tokens'
-        const agents = bridge.agentsKnown ? bridge.agents : 0
-        const liveCost = money.costKnown
-          ? money.cost
-          : (sessionCostId === bridge.currentSessionId && sessionCostText !== null ? sessionCostText : '—')
-        const costIsEstimate = money.costKnown === false
-        // A brand-new (blank) Session has no conversation yet: hide the whole
-        // tray so the home page never shows a fake 上下文/花费/余额 readout.
-        // The hero headline is the reliable "not started yet" UI signal; the
-        // bridge flag covers blank sessions that render without the hero.
-        const blank = bridge.blank === true || document.querySelector('[class*="Hqq-bq_headline"]') !== null
-        for (const tray of document.querySelectorAll('.' + TRAY_CLASS)) {
-          const display = blank ? 'none' : ''
-          if (tray.style.display !== display) tray.style.display = display
-          if (blank) continue
-          const cache = tray.querySelector('.dsh-hud-cache')
-          if (cache !== null && cache.textContent !== cacheText) cache.textContent = cacheText
-          const cost = tray.querySelector('.dsh-hud-cost .dsh-hud-value')
-          if (cost !== null && cost.textContent !== liveCost) cost.textContent = liveCost
-          const costPart = tray.querySelector('.dsh-hud-cost')
-          if (costPart !== null) {
-            const title = costIsEstimate
-              ? '按真实 token 用量与官方价目估算；安装底部信息栏插件可显示账单实扣金额'
-              : '本会话实扣金额'
-            if (costPart.getAttribute('title') !== title) costPart.setAttribute('title', title)
-          }
-          const tps = tray.querySelector('.dsh-hud-tps .dsh-hud-value')
-          if (tps !== null && tps.textContent !== tpsText) tps.textContent = tpsText
-          syncSidebarBalance()
-          const progress = tray.querySelector('.dsh-hud-ring-progress')
-          if (progress !== null) {
-            const offset = (TRAY_RING_LENGTH * (1 - percent / 100)).toFixed(2)
-            if (progress.getAttribute('stroke-dashoffset') !== offset) progress.setAttribute('stroke-dashoffset', offset)
-          }
-          const contextLabel = tray.querySelector('.dsh-hud-context-label')
-          if (contextLabel !== null && contextLabel.textContent !== contextLabelText) contextLabel.textContent = contextLabelText
-          const contextPart = tray.querySelector('.dsh-hud-context')
-          if (contextPart !== null) {
-            const current = contextPart.getAttribute('title')
-            if (current !== contextTitle) {
-              if (contextTitle === '') contextPart.removeAttribute('title')
-              else contextPart.setAttribute('title', contextTitle)
+        const now = hudNow()
+        const lastStep = bridge.lastStep
+        // Calibrate lazily: the probe and the data bridge are separate React
+        // occupants, so the step sample can become ready after the projection
+        // frame that carried the provider truth.
+        if (lastStep !== null && lastStep.calibrated !== true) {
+          // Mark the sample as consumed only when it actually landed; the probe
+          // may still be one commit behind the projection frame.
+          if (liveCalibrate(lastStep.tokens) === true) lastStep.calibrated = true
+        }
+        const liveSpeed = liveTps(now)
+        let tps = 0
+        let tpsSource = 'idle'
+        if (running === true) {
+          if (liveSpeed > 0) {
+            // Character-priced stream speed: the only reading that moves mid-step.
+            tps = liveSpeed
+            tpsSource = 'live'
+          } else if (lastStep !== null && now - lastStep.at < 15000) {
+            // Between steps the last provider-truth sample is the honest number.
+            tps = lastStep.tps
+            if (tps > 0) tpsSource = 'last'
+          } else if (typeof bridge.tokensPerSecond === 'number' && bridge.tokensPerSecond > 0) {
+            // Whole-session fallback for a Session opened before any step settled.
+            tps = bridge.tokensPerSecond
+            tpsSource = 'lifetime'
+          } else if (money.tps !== null) {
+            // Last resort: the host pill itself (same whole-session semantics).
+            const parsed = Number.parseInt(money.tps, 10)
+            if (Number.isFinite(parsed) && parsed > 0) {
+              tps = parsed
+              tpsSource = 'lifetime'
             }
           }
-          const agentsPart = tray.querySelector('.dsh-hud-agents')
-          if (agentsPart !== null) {
-            const display = agents > 0 ? '' : 'none'
-            if (agentsPart.style.display !== display) agentsPart.style.display = display
-            const agentLabel = agentsPart.querySelector('.dsh-hud-agent-label')
-            const agentText = agents + ' Agents'
-            if (agentLabel !== null && agentLabel.textContent !== agentText) agentLabel.textContent = agentText
-          }
-          const agentsSep = tray.querySelector('.dsh-tray-sep-agents')
-          if (agentsSep !== null) {
-            const display = agents > 0 ? '' : 'none'
-            if (agentsSep.style.display !== display) agentsSep.style.display = display
+        }
+        const tpsTitle = tpsSource === 'live'
+          ? '当前流式解码速度（按流式文本估算，步末校准）'
+          : tpsSource === 'last'
+            ? '最近一步的真实解码速度（provider 上报）'
+            : tpsSource === 'lifetime'
+              ? '整段会话平均解码速度（宿主 sessionStats）'
+              : (running === true ? '会话运行中，暂无可用的解码速度' : '会话空闲')
+        const lifetimeHit = typeof bridge.cacheHitPercent === 'number' ? bridge.cacheHitPercent : null
+        const cacheText = lifetimeHit === null
+          ? (money.cacheHit === null ? '—' : money.cacheHit)
+          : lifetimeHit.toFixed(1) + '%'
+        const cacheTitle = []
+        if (lifetimeHit !== null) cacheTitle.push('整段会话 ' + lifetimeHit.toFixed(1) + '%')
+        if (typeof bridge.lastStepHit === 'number') cacheTitle.push('最近一步 ' + bridge.lastStepHit.toFixed(1) + '%')
+        if (bridge.tokenUsage !== null && typeof bridge.tokenUsage === 'object'
+          && typeof bridge.tokenUsage.cacheReadTokens === 'number') {
+          cacheTitle.push('缓存读 ' + formatTokens(bridge.tokenUsage.cacheReadTokens) + ' tokens')
+        }
+        const context = bridge.context
+        const liveTokens = running === true ? liveStepTokens() : 0
+        let contextPercent = null
+        let contextText = '—'
+        let contextTitle = ''
+        if (context !== null) {
+          const used = context.usedTokens + liveTokens
+          contextPercent = context.contextWindow > 0 ? Math.min(100, used / context.contextWindow * 100) : 0
+          contextText = hudPercentText(contextPercent)
+          contextTitle = (liveTokens > 0 ? '~' : '') + formatTokens(used) + ' / ' + formatTokens(context.contextWindow) + ' tokens'
+          if (liveTokens > 0) contextTitle += '（含流式估算 ' + formatTokens(liveTokens) + '）'
+        }
+        const costKnownHere = money.costKnown === true
+        const costFromSession = sessionCost.id === sessionId && sessionCost.text !== null
+        const costText = costKnownHere ? money.cost : (costFromSession ? sessionCost.text : '—')
+        let costTitle = '本会话实扣金额（bottom-info-bar）'
+        let costSource = 'actual'
+        if (costKnownHere === false) {
+          if (costFromSession) {
+            costTitle = sessionCost.title
+            costSource = sessionCost.source ?? 'none'
+          } else {
+            costTitle = sessionCost.id === sessionId
+              ? (sessionCost.title !== '' ? sessionCost.title : '本次会话花费暂不可用')
+              : '正在读取本次会话的估算花费…'
+            costSource = null
           }
         }
+        const agents = bridge.agentsKnown ? bridge.agents : 0
+        // A brand-new (blank) Session has no conversation yet: hide the whole
+        // tray so the home page never shows a fake 上下文/花费 readout.
+        // The hero headline is the reliable "not started yet" UI signal; the
+        // bridge flag covers blank sessions that render without the hero.
+        const blank = bridge.blank === true || document.querySelector('[class*="_composerHero"] [class*="_headline"]') !== null
+        return {
+          blank,
+          tpsText: tps > 0 ? String(tps) : '0',
+          cacheText,
+          cacheTitle: cacheTitle.join('；'),
+          contextPercent,
+          contextText,
+          contextTitle,
+          costText,
+          costTitle,
+          priceSource: costSource,
+          tpsTitle,
+          agents,
+        }
+      }
+
+      /** Paint one model into every mounted tray: text + attributes only. */
+      const paint = (model) => {
+        for (const tray of document.querySelectorAll('.' + TRAY_CLASS)) {
+          const display = model.blank ? 'none' : ''
+          if (tray.style.display !== display) tray.style.display = display
+          if (model.blank) continue
+          const parts = hudPartsOf(tray)
+          setHudText(parts.cache, model.cacheText)
+          setHudTitle(parts.cachePart, model.cacheTitle)
+          setHudText(parts.cost, model.costText)
+          if (parts.costPart !== null) {
+            const source = model.priceSource === null ? 'pending' : model.priceSource
+            if (parts.costPart.getAttribute('data-price-source') !== source) parts.costPart.setAttribute('data-price-source', source)
+          }
+          setHudTitle(parts.costPart, model.costTitle)
+          setHudText(parts.tps, model.tpsText)
+          setHudTitle(parts.tpsPart, model.tpsTitle)
+          if (parts.progress !== null) {
+            const percent = model.contextPercent === null ? TRAY_CONTEXT_FALLBACK : model.contextPercent
+            const offset = (TRAY_RING_LENGTH * (1 - percent / 100)).toFixed(2)
+            if (parts.progress.getAttribute('stroke-dashoffset') !== offset) parts.progress.setAttribute('stroke-dashoffset', offset)
+          }
+          setHudText(parts.context, model.contextText)
+          setHudTitle(parts.contextPart, model.contextTitle)
+          const agentsDisplay = model.agents > 0 ? '' : 'none'
+          if (parts.agentsPart !== null && parts.agentsPart.style.display !== agentsDisplay) parts.agentsPart.style.display = agentsDisplay
+          if (parts.agentsSep !== null && parts.agentsSep.style.display !== agentsDisplay) parts.agentsSep.style.display = agentsDisplay
+          if (parts.agentsLabel !== null) setHudText(parts.agentsLabel, model.agents + ' Agents')
+        }
+      }
+      const render = () => {
+        refreshSessionCost()
+        paint(readModel())
       }
       const ensure = () => {
-        for (const root of document.querySelectorAll('.RlGAzG_root')) {
-          const card = root.querySelector(':scope > .RlGAzG_card')
+        for (const root of document.querySelectorAll('[class*="_root"]:has([data-lexical-editor="true"])')) {
+          const card = root.querySelector(':scope > [class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])')
           if (card === null) continue
           if (root.querySelector(':scope > .' + TRAY_CLASS) === null) card.after(createComposerTray())
         }
         for (const tray of document.querySelectorAll('.' + TRAY_CLASS)) {
           const card = tray.previousElementSibling
-          if (card === null || card.classList.contains('RlGAzG_card') === false) tray.remove()
+          if (card === null || card.matches('[class*="_card"]') === false) tray.remove()
         }
       }
-      ensure()
-      render()
-      bridgeListeners.add(render)
-      const timer = window.setInterval(render, 1000)
+      // Two cadences: a streaming Session needs a 2 Hz sample, an idle one only has
+      // to keep cost/balance honest. The timeout is re-armed per tick so the
+      // cadence can change without tearing anything down.
+      const HUD_ACTIVE_TICK_MS = 500
+      const HUD_IDLE_TICK_MS = 2000
+      let timer = 0
+      let disposed = false
       let scheduled = 0
-      const schedule = () => {
+
+      const pageHidden = () => {
+        try {
+          return document.visibilityState === 'hidden'
+        } catch {
+          return false
+        }
+      }
+      const sessionRunning = () => {
+        const sessionId = bridge.currentSessionId
+        const status = bridge.sessions?.statuses?.get(sessionId) ?? null
+        const summary = bridge.sessions?.byId?.[sessionId] ?? null
+        return (status?.running ?? summary?.running ?? false) === true
+      }
+      const renderNow = () => {
+        if (disposed || pageHidden()) return
+        try {
+          render()
+        } catch (error) {
+          // A HUD failure must never break the composer; log it once.
+          if (bridge.hudPaintError !== true) {
+            bridge.hudPaintError = true
+            console.error('[dsh-claude-code-desktop-theme] HUD paint failed', error)
+          }
+        }
+      }
+      const armTicker = () => {
+        if (disposed) return
+        if (timer !== 0) window.clearTimeout(timer)
+        if (pageHidden()) {
+          timer = 0
+          return
+        }
+        timer = window.setTimeout(() => {
+          timer = 0
+          renderNow()
+          armTicker()
+        }, sessionRunning() ? HUD_ACTIVE_TICK_MS : HUD_IDLE_TICK_MS)
+      }
+      // Projection frames still paint immediately: provider truth must land at
+      // once. The ticker only covers values that move between frames (live
+      // tok/s decay, cost refresh, the context ring while streaming).
+      const onBridgeChange = () => renderNow()
+      const onVisibility = () => {
+        if (pageHidden()) {
+          if (timer !== 0) window.clearTimeout(timer)
+          timer = 0
+          return
+        }
+        renderNow()
+        armTicker()
+      }
+      ensure()
+      renderNow()
+      bridgeListeners.add(onBridgeChange)
+      document.addEventListener('visibilitychange', onVisibility)
+      armTicker()
+      // The body observer is mount maintenance only: React re-renders the
+      // composer freely while streaming, and repainting the whole tray on every
+      // one of those mutations was the old observer's biggest cost.
+      const scheduleEnsure = () => {
         if (scheduled !== 0) return
         scheduled = window.requestAnimationFrame(() => {
           scheduled = 0
+          if (disposed) return
           ensure()
-          render()
         })
       }
-      const observer = new MutationObserver(schedule)
+      const observer = new MutationObserver(scheduleEnsure)
       observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
       return () => {
-        bridgeListeners.delete(render)
-        window.clearInterval(timer)
+        disposed = true
+        bridgeListeners.delete(onBridgeChange)
+        document.removeEventListener('visibilitychange', onVisibility)
+        if (timer !== 0) window.clearTimeout(timer)
         observer.disconnect()
         if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        liveReset()
         for (const tray of document.querySelectorAll('.' + TRAY_CLASS)) tray.remove()
       }
     }
@@ -1756,6 +2222,10 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       sessions: null,
       updates: 0,
       blank: null,
+      // Step-to-step provider truth, derived from adjacent projection frames:
+      // the only real decode speed / cache-hit sample that exists between ticks.
+      lastStep: null,
+      lastStepHit: null,
     }
     /** DOM runtimes that want an immediate refresh when the bridge changes. */
     const bridgeListeners = new Set()
@@ -1768,6 +2238,220 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       if (value < 1000) return String(Math.round(value))
       if (value < 1e6) return (value / 1e3).toFixed(value < 1e4 ? 1 : 0) + 'K'
       return (value / 1e6).toFixed(1) + 'M'
+    }
+
+    // ── HUD live stream sampler (data layer) ────────────────────────────────
+    // The host settles usage once per model step, so projections alone cannot
+    // move during a decode. The chat snapshot, however, publishes the running
+    // Assistant step's content blocks every animation frame (`legacy.partial`),
+    // so ThemeLiveProbe can price those character deltas here. Everything in
+    // this section is read-only state the HUD ticker reads; it never renders.
+    const HUD_TPS_WINDOW_MS = 2000
+    const HUD_TPS_STALE_MS = 1200
+    const HUD_SAMPLE_KEEP_MS = 3000
+    const HUD_SAMPLE_INTERVAL_MS = 80
+    const HUD_BLOCK_OVERHEAD = 4
+    const HUD_CJK_CHAR_PATTERN = /[\u2e80-\u2eff\u3000-\u303f\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]/g
+    const HUD_CURRENCY_SYMBOLS = { CNY: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥' }
+
+    /** Monotonic clock shared by every live/deadline comparison. */
+    function hudNow() {
+      try {
+        if (typeof performance !== 'undefined' && typeof performance.now === 'function') return performance.now()
+      } catch {
+        // Fall through to wall time.
+      }
+      return Date.now()
+    }
+
+    /**
+     * Price one streaming content-block list the way the host's heuristic does
+     * (CHARS_PER_TOKEN = 4) but count CJK characters one token each, otherwise a
+     * Chinese reply reads 3-4x slower than the provider's own tok/s.
+     * Pure: offline-testable, no DOM, no clock.
+     * @param {Array<object>} blocks - assistant content blocks (text/reasoning/tool-call).
+     * @returns {number} estimated tokens.
+     */
+    function estimateStreamTokens(blocks) {
+      if (Array.isArray(blocks) === false) return 0
+      let tokens = 0
+      for (const block of blocks) {
+        if (block === null || typeof block !== 'object') continue
+        if (block.type === 'text' || block.type === 'reasoning') {
+          const text = typeof block.text === 'string' ? block.text : ''
+          const cjk = text.match(HUD_CJK_CHAR_PATTERN)
+          const cjkCount = cjk === null ? 0 : cjk.length
+          tokens += cjkCount + Math.ceil((text.length - cjkCount) / 4) + HUD_BLOCK_OVERHEAD
+        } else if (block.type === 'tool-call') {
+          const name = typeof block.name === 'string' ? block.name : ''
+          const args = typeof block.arguments === 'string' ? block.arguments : ''
+          tokens += Math.ceil(name.length / 4) + Math.ceil(args.length / 4) + HUD_BLOCK_OVERHEAD
+        }
+      }
+      return tokens
+    }
+
+    /** One decimal for occupancy; 100% only when genuinely full. Pure. */
+    function hudPercentText(percent) {
+      if (typeof percent !== 'number' || Number.isFinite(percent) === false) return '—'
+      const clamped = Math.min(100, Math.max(0, percent))
+      if (clamped >= 99.95) return '100%'
+      return clamped.toFixed(1) + '%'
+    }
+
+    /**
+     * Turn the host's `sessionCost` payload into display text plus a tooltip.
+     * Never derives an "actual charge": an estimate keeps its `~` marker.
+     * Pure: offline-testable.
+     * @param {object} cost - `value.sessionCost` from the usage-summary route.
+     * @returns {{text: string, title: string, currency: string, source: string} | null}
+     */
+    function hudCostDisplay(cost) {
+      if (cost === null || typeof cost !== 'object') return null
+      if (cost.priced !== true || typeof cost.cost !== 'number' || Number.isFinite(cost.cost) === false) return null
+      const currency = typeof cost.currency === 'string' && cost.currency !== '' ? cost.currency.toUpperCase() : 'CNY'
+      const symbol = Object.hasOwn(HUD_CURRENCY_SYMBOLS, currency) ? HUD_CURRENCY_SYMBOLS[currency] : '¥'
+      const digits = cost.cost > 0 && cost.cost < 0.01 ? 4 : 2
+      const amount = symbol + cost.cost.toLocaleString('en-US', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      })
+      const estimated = cost.estimated === true
+      const source = typeof cost.priceSource === 'string' ? cost.priceSource : 'none'
+      const matched = typeof cost.matchedKey === 'string' && cost.matchedKey !== '' ? '（' + cost.matchedKey + '）' : ''
+      const lines = []
+      if (source === 'none') lines.push('未知模型，按中档价估算')
+      else if (source === 'family') lines.push('同族默认价估算' + matched)
+      else if (source === 'override') lines.push('自定义价目估算' + matched)
+      else lines.push('官方价目估算' + matched)
+      if (estimated === true) lines.push('按真实 token 用量估算，不是账单实扣')
+      const byCurrency = cost.costByCurrency
+      if (cost.mixedCurrencies === true && byCurrency !== null && typeof byCurrency === 'object') {
+        const others = Object.entries(byCurrency)
+          .filter(([code, value]) => code !== currency && typeof value === 'number' && Number.isFinite(value))
+          .map(([code, value]) => code + ' ' + value.toFixed(2))
+        if (others.length > 0) lines.push('另含 ' + others.join(' / ') + '，未换算')
+      }
+      return { text: (estimated ? '~' : '') + amount, title: lines.join('；'), currency, source }
+    }
+
+    const live = {
+      sessionId: null,
+      turn: null,
+      step: null,
+      tokens: 0,
+      cum: 0,
+      samples: [],
+      streaming: false,
+      lastGrowthAt: 0,
+      lastSampleAt: 0,
+      finished: null,
+      calib: 1,
+    }
+
+    /** Forget every live reading (session switch, unmount, tab resume). */
+    function liveReset() {
+      live.turn = null
+      live.step = null
+      live.tokens = 0
+      live.cum = 0
+      live.samples.length = 0
+      live.streaming = false
+      live.lastGrowthAt = 0
+      live.lastSampleAt = 0
+      live.finished = null
+      live.calib = 1
+    }
+
+    /**
+     * Fold one chat snapshot's running Assistant step into the sampler.
+     * Runs on every probe render; the 80ms gate keeps a long reasoning block
+     * from being re-priced on all 60 frames of a second.
+     * @param {object|null} partial - `useChat().legacy.partial`.
+     * @param {string|null} sessionId - owner Session.
+     */
+    function liveSample(partial, sessionId) {
+      const now = hudNow()
+      const owner = typeof sessionId === 'string' ? sessionId : null
+      if (live.sessionId !== owner) {
+        live.sessionId = owner
+        liveReset()
+      }
+      if (partial === null || typeof partial !== 'object') {
+        if (live.streaming === true && live.tokens > 0) live.finished = { tokens: live.tokens, at: now }
+        live.streaming = false
+        live.tokens = 0
+        live.turn = null
+        live.step = null
+        return
+      }
+      if (live.lastSampleAt !== 0 && now - live.lastSampleAt < HUD_SAMPLE_INTERVAL_MS) return
+      live.lastSampleAt = now
+      const turn = typeof partial.turn === 'number' ? partial.turn : null
+      const step = typeof partial.step === 'number' ? partial.step : null
+      const tokens = estimateStreamTokens(partial.blocks)
+      if (live.turn !== turn || live.step !== step) {
+        // New step: `cum` stays monotonic so the window can span the boundary.
+        live.turn = turn
+        live.step = step
+        live.tokens = 0
+      }
+      const delta = tokens - live.tokens
+      live.tokens = tokens
+      if (delta <= 0) return
+      live.cum += delta
+      live.streaming = true
+      live.lastGrowthAt = now
+      live.samples.push({ t: now, cum: live.cum })
+      const cutoff = now - HUD_SAMPLE_KEEP_MS
+      while (live.samples.length > 1 && live.samples[0].t < cutoff) live.samples.shift()
+    }
+
+    /**
+     * Decode speed over the last HUD window, calibrated to provider truth.
+     * Zero once the stream has been quiet for HUD_TPS_STALE_MS.
+     * @param {number} now - hudNow() reading of the caller.
+     * @returns {number} rounded tok/s, or 0.
+     */
+    function liveTps(now) {
+      if (live.streaming !== true || live.calib <= 0) return 0
+      if (now - live.lastGrowthAt > HUD_TPS_STALE_MS) return 0
+      const samples = live.samples
+      if (samples.length < 2) return 0
+      const newest = samples[samples.length - 1]
+      const cutoff = newest.t - HUD_TPS_WINDOW_MS
+      let base = samples[0]
+      for (let index = samples.length - 2; index >= 0; index -= 1) {
+        base = samples[index]
+        if (base.t <= cutoff) break
+      }
+      const seconds = (newest.t - base.t) / 1000
+      const tokens = (newest.cum - base.cum) * live.calib
+      if (seconds < 0.5 || tokens <= 0) return 0
+      return Math.round(tokens / seconds)
+    }
+
+    /** Estimated tokens already streamed for the current step. */
+    function liveStepTokens() {
+      return live.streaming === true && live.tokens > 0 ? live.tokens : 0
+    }
+
+    /**
+     * Calibrate the character heuristic against provider-reported decode
+     * tokens of the step that just settled (one sample per step).
+     * @param {number} realTokens - ΔdecodeTokens from the sessionStats fold.
+     * @returns {boolean} true when the sample was applied.
+     */
+    function liveCalibrate(realTokens) {
+      const finished = live.finished
+      if (finished === null || typeof finished !== 'object') return false
+      if (typeof realTokens !== 'number' || Number.isFinite(realTokens) === false) return false
+      const age = hudNow() - finished.at
+      if (age > 5000 || finished.tokens < 20) return false
+      const ratio = realTokens / finished.tokens
+      if (Number.isFinite(ratio) === false || ratio <= 0) return false
+      live.calib = Math.min(2.5, Math.max(0.5, ratio))
+      return true
     }
 
     /** Split text into diffable lines; tolerates CRLF and absent text. */
@@ -1911,10 +2595,27 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       try {
         const stats = input.stats
         if (stats !== null && typeof stats === 'object') {
+          const previous = bridge.stats
           bridge.stats = stats
           const decodeMs = typeof stats.decodeMs === 'number' ? stats.decodeMs : 0
           const decodeTokens = typeof stats.decodeTokens === 'number' ? stats.decodeTokens : 0
           bridge.tokensPerSecond = decodeMs > 0 ? Math.max(0, Math.round(decodeTokens / (decodeMs / 1000))) : 0
+          if (previous !== null && typeof previous === 'object') {
+            const previousTokens = typeof previous.decodeTokens === 'number' ? previous.decodeTokens : 0
+            const previousMs = typeof previous.decodeMs === 'number' ? previous.decodeMs : 0
+            const deltaTokens = decodeTokens - previousTokens
+            const deltaMs = decodeMs - previousMs
+            // One assistant/message settlement == one real decode sample.
+            if (deltaTokens > 0 && deltaMs > 0) {
+              bridge.lastStep = {
+                tps: Math.round(deltaTokens / (deltaMs / 1000)),
+                tokens: deltaTokens,
+                at: hudNow(),
+                calibrated: false,
+              }
+              if (liveCalibrate(deltaTokens) === true) bridge.lastStep.calibrated = true
+            }
+          }
         }
       } catch (error) {
         // Keep the last known session statistics.
@@ -1923,12 +2624,21 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         const usage = input.usage
         const totals = usage && typeof usage === 'object' ? usage.totals : null
         if (totals !== null && typeof totals === 'object') {
+          const previous = bridge.tokenUsage
           bridge.tokenUsage = totals
           const read = typeof totals.cacheReadTokens === 'number' ? totals.cacheReadTokens : 0
           const uncached = typeof totals.uncachedInputTokens === 'number' ? totals.uncachedInputTokens : 0
           const write = typeof totals.cacheWriteTokens === 'number' ? totals.cacheWriteTokens : 0
           const prompt = read + uncached + write
           bridge.cacheHitPercent = prompt > 0 ? Math.round((read / prompt) * 1000) / 10 : null
+          if (previous !== null && typeof previous === 'object') {
+            const previousRead = typeof previous.cacheReadTokens === 'number' ? previous.cacheReadTokens : 0
+            const previousUncached = typeof previous.uncachedInputTokens === 'number' ? previous.uncachedInputTokens : 0
+            const previousWrite = typeof previous.cacheWriteTokens === 'number' ? previous.cacheWriteTokens : 0
+            const deltaRead = read - previousRead
+            const deltaPrompt = deltaRead + (uncached - previousUncached) + (write - previousWrite)
+            if (deltaPrompt > 0) bridge.lastStepHit = Math.round((deltaRead / deltaPrompt) * 1000) / 10
+          }
         }
       } catch (error) {
         // Keep the last known token usage.
@@ -1964,9 +2674,26 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         // Keep the last known session status snapshot.
       }
       try {
+        const nextSessionId = input.sessionId ?? null
+        if (bridge.currentSessionId !== nextSessionId) {
+          // A different Session must never inherit the previous live window or
+          // the previous estimate (the cached text belongs to the old session).
+          bridge.lastStep = null
+          bridge.lastStepHit = null
+          live.sessionId = nextSessionId
+          liveReset()
+          // Keep a cache entry that already belongs to the incoming Session.
+          if (sessionCost.id !== null && sessionCost.id !== nextSessionId) {
+            sessionCost.id = null
+            sessionCost.text = null
+            sessionCost.title = ''
+            sessionCost.source = null
+            sessionCost.estimated = false
+          }
+        }
         bridge.blank = input.blank === true
         bridge.nodeCount = (input.nodes || []).length
-        bridge.currentSessionId = input.sessionId ?? null
+        bridge.currentSessionId = nextSessionId
         bridge.sessionSummaryBlank = input.summaries?.[input.sessionId]?.blank ?? null
       } catch (error) {
         // Keep the last known blank-session flag.
@@ -2016,6 +2743,33 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           updateBridge({ nodes, pressure, stats, usage, projections, summaries, statuses, sessionId, cwd, blank })
         } catch (error) {
           bridge.lastError = String(error && error.message ? error.message : error)
+        }
+      })
+      // The probe is a child, not a second slot occupant: it re-renders on its
+      // own streamed frames while this bridge keeps its per-node-change cadence.
+      return React.createElement(ThemeLiveProbe, { useChat, sessionId })
+    }
+
+    /**
+     * Headless stream probe: samples the running Assistant step's partial
+     * blocks for the live tok/s window, and renders nothing.
+     *
+     * It is a separate occupant from ThemeDataBridge on purpose: that bridge
+     * rebuilds the whole tool-diff map on every render, while this one has to
+     * run on each streamed animation frame. All it does is price characters
+     * into module state (no setState, no DOM, no bridge write).
+     */
+    function ThemeLiveProbe({ useChat, sessionId }) {
+      // Defensive selector: an older host without the `legacy` compatibility
+      // slice must degrade to "no live estimate", never crash the composer.
+      const partial = useChat((state) => (state && state.legacy ? state.legacy.partial ?? null : null))
+      React.useEffect(() => {
+        try {
+          const owner = typeof sessionId === 'string' ? sessionId : bridge.currentSessionId
+          liveSample(partial ?? null, typeof owner === 'string' ? owner : null)
+        } catch (error) {
+          // A reshaped chat snapshot must only cost the live estimate.
+          bridge.lastLiveError = String(error && error.message ? error.message : error)
         }
       })
       return null
@@ -2932,11 +3686,27 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       return null;
     }
 
+    /**
+     * 「不指定档位」的哨兵 id。
+     *
+     * 官方模型菜单在模型没有 defaultEffort 时会多出一个 Default 选项：选中它等于
+     * 请求里不带 reasoningEffort，交给 provider 决定（对 thinkingFormat=qwen 的网关
+     * 就是 enable_thinking=false，即关思考）。它和显式档位一样是可选状态，所以滑条
+     * 必须画成一个位置，否则会出现「菜单 4 项、滑条只有 3 点」。
+     */
+    var PROVIDER_DEFAULT_LEVEL_ID = "__provider_default__";
+
     /** 当前模型真实可用的档位列表（官方 id + 官方显示名，按目录顺序）。 */
     function levelsOf(state) {
       var model = modelOf(state);
-      var efforts = model && model.reasoning && Array.isArray(model.reasoning.efforts) ? model.reasoning.efforts : [];
+      var reasoning = model && model.reasoning ? model.reasoning : null;
+      var efforts = reasoning && Array.isArray(reasoning.efforts) ? reasoning.efforts : [];
       var out = [];
+      // 与官方菜单一致：没有 defaultEffort 时，Default 排在第一项。
+      var hasDefault = reasoning && typeof reasoning.defaultEffort === "string" && reasoning.defaultEffort.length > 0;
+      if (reasoning && efforts.length > 0 && !hasDefault) {
+        out.push({ id: PROVIDER_DEFAULT_LEVEL_ID, name: "Default", providerDefault: true });
+      }
       for (var i = 0; i < efforts.length; i += 1) {
         var effort = efforts[i];
         if (!effort || typeof effort.id !== "string" || effort.id.length === 0) continue;
@@ -2950,7 +3720,8 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
     /**
      * 当前**生效**的档位 id：显式设置优先；没设置过就是模型的默认档
-     * （与官方 `syncInputs()` 的 `effort = intended.reasoningEffort ?? reasoning.defaultEffort` 同款）。
+     * （与官方 `syncInputs()` 的 `effort = intended.reasoningEffort ?? reasoning.defaultEffort` 同款）；
+     * 两者都没有但有可选档位时，就是官方的 Default 状态。
      */
     function effectiveEffortId(state) {
       var current = state && state.current;
@@ -2958,8 +3729,12 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         return current.reasoningEffort;
       }
       var model = modelOf(state);
-      var fallback = model && model.reasoning && model.reasoning.defaultEffort;
-      return typeof fallback === "string" && fallback.length > 0 ? fallback : null;
+      var reasoning = model && model.reasoning ? model.reasoning : null;
+      var fallback = reasoning && reasoning.defaultEffort;
+      if (typeof fallback === "string" && fallback.length > 0) return fallback;
+      var efforts = reasoning && Array.isArray(reasoning.efforts) ? reasoning.efforts : [];
+      if (efforts.length > 0) return PROVIDER_DEFAULT_LEVEL_ID;
+      return null;
     }
 
     function indexOfLevel(levels, id) {
@@ -4129,11 +4904,14 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
         var result;
         try {
-          result = directory.select({
+          // Default 不是真实档位：不带 reasoningEffort，等于交给 provider 决定
+          // （官方 select 在 reasoningEffort 缺省时也走同一条路径）。
+          var selection = {
             provider: current.provider,
             model: current.model,
-            reasoningEffort: levelId,
-          });
+          };
+          if (levelId !== PROVIDER_DEFAULT_LEVEL_ID) selection.reasoningEffort = levelId;
+          result = directory.select(selection);
         } catch (error) {
           result = Promise.reject(error);
         }
@@ -4800,14 +5578,951 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     return module.exports;
     })()
 
+    // ── Desktop pet: DeepSeek pixel whale ───────────────────────────────────
+    // A 16×16 pixel whale sits on the composer's top-right corner. The art is
+    // baked into a 4-frame PNG sprite sheet with canvas at mount time, so the
+    // whole pet is a single 32×32 background layer instead of hundreds of pixel
+    // nodes. Frame swaps only repaint that layer; every movement is an integer
+    // pixel transform, so the art never blurs. Nothing here touches host state:
+    // it only observes the composer and reacts (spec: docs/PET.zh.md).
+    const PET_HIDDEN_KEY = 'dsh-theme-pet-hidden'
+    const PET_CLASS = 'dsh-pet'
+    const PET_SPRITE_CLASS = 'dsh-pet__sprite'
+    const PET_HIDE_CLASS = 'dsh-pet__hide'
+    const PET_BUBBLE_CLASS = 'dsh-pet__bubble'
+    const PET_RESTORE_CLASS = 'dsh-pet-restore'
+    const PET_ANCHOR_CARD = 'card'
+    const PET_ANCHOR_FIXED = 'fixed'
+    const PET_BREATH_MS = 1600
+    const PET_BLINK_MS = 120
+    const PET_HAPPY_MS = 480
+    const PET_DASH_MS = 600
+    const PET_COOLDOWN_MS = 600
+    const PET_SEND_DEDUPE_MS = 400
+    const PET_BUBBLE_MS = 1200
+    const PET_SPRITE_PX = 32
+    const PET_OFFSET_TOP = 36
+    const PET_OFFSET_SIDE = 8
+
+    const PET_PALETTE_LIGHT = {
+      K: '#152443',
+      L: '#7c93ff',
+      B: '#4d6bfe',
+      D: '#3a65c2',
+      W: '#eaf3ff',
+      E: '#1d1b16',
+      S: '#ffffff',
+      P: '#da7756',
+      C: '#9cc1e7',
+      A: '#f7ad31',
+    }
+    const PET_PALETTE_DARK = {
+      K: '#0c1326',
+      L: '#8aa0ff',
+      B: '#5c79ff',
+      D: '#3f5bc9',
+      W: '#c9d8f2',
+      E: '#141210',
+      S: '#ffffff',
+      P: '#e08a6a',
+      C: '#7fb2de',
+      A: '#f7ad31',
+    }
+
+    // 16×16 character matrices straight from docs/PET.zh.md (one char = 1 px).
+    const PET_FRAMES = {
+      idle: [
+        "................",
+        "................",
+        "................",
+        ".....C......KKK.",
+        "....C.C....KKDK.",
+        ".....C....KKDDK.",
+        "...KKKKKKKKDDDK.",
+        ".KKKLLLLKKDDDDK.",
+        "KKLLLLLLLLDDDDK.",
+        "KBBSBBBBBBBKKKK.",
+        "KBBEEBBBBBBKKDK.",
+        "BBBBBWWWWBBDDDK.",
+        "BBBBWWWWWWDDDDK.",
+        "KBBWWWWWKKKKDDK.",
+        "KKBBWKKKK..KKDK.",
+        ".KKKKK......KKK.",
+      ],
+      idle_lo: [
+        "................",
+        "................",
+        ".....C......KKK.",
+        "....C.C....KKDK.",
+        ".....C....KKDDK.",
+        "...KKKKKKKKDDDK.",
+        ".KKKLLLLKKDDDDK.",
+        "KKLLLLLLLLDDDDK.",
+        "KBBSBBBBBBBKKKK.",
+        "KBBEEBBBBBBKKDK.",
+        "BBBBBWWWWBBDDDK.",
+        "BBBBWWWWWWDDDDK.",
+        "KBBWWWWWKKKKDDK.",
+        "KKBBWKKKK..KKDK.",
+        ".KKKKK......KKK.",
+        "................",
+      ],
+      blink: [
+        "................",
+        "................",
+        "................",
+        ".....C......KKK.",
+        "....C.C....KKDK.",
+        ".....C....KKDDK.",
+        "...KKKKKKKKDDDK.",
+        ".KKKLLLLKKDDDDK.",
+        "KKLLLLLLLLDDDDK.",
+        "KBBBBBBBBBBKKKK.",
+        "KBBEEBBBBBBKKDK.",
+        "BBBBBWWWWBBDDDK.",
+        "BBBBWWWWWWDDDDK.",
+        "KBBWWWWWKKKKDDK.",
+        "KKBBWKKKK..KKDK.",
+        ".KKKKK......KKK.",
+      ],
+      happy: [
+        "................",
+        "................",
+        "....C.C.........",
+        "...C.C.C....KKK.",
+        "....C.C....KKDK.",
+        ".....C....KKDDK.",
+        "...KKKKKKKKDDDK.",
+        ".KKKLLLLKKDDDDK.",
+        "KKLLLLLLLLDDDDK.",
+        "KBBSSBBBBBBKKKK.",
+        "KBBEEBBBBBBKKDK.",
+        "BPBBBWWWWBBDDDK.",
+        "BBBBWWWWWWDDDDK.",
+        "KBBWWWWWKKKKDDK.",
+        "KKBBWKKKK..KKDK.",
+        ".KKKKK......KKK.",
+      ],
+    }
+    const PET_FRAME_ORDER = ['idle', 'idle_lo', 'blink', 'happy']
+
+    const PET_CSS = [
+      // Card-relative placement needs the card as containing block; relative on
+      // its own never changes the host layout.
+      '[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]){position:relative!important}',
+      '.dsh-pet{position:absolute;top:-36px;right:8px;width:32px;height:32px;box-sizing:border-box;z-index:3;pointer-events:none;isolation:isolate}',
+      '.dsh-pet[data-anchor="fixed"]{position:fixed;top:0;left:0;right:auto;z-index:30}',
+      '.dsh-pet::before{content:"";position:absolute;inset:-6px;border-radius:50%;background:radial-gradient(circle,rgba(77,107,254,.22),rgba(77,107,254,0) 70%);opacity:0;transition:opacity 120ms linear;pointer-events:none}',
+      '.dsh-pet[data-state="hover"]::before{opacity:1}',
+      '.dsh-pet__sprite{position:absolute;inset:0;display:block;pointer-events:auto;cursor:pointer;background-image:var(--dsh-pet-sheet);background-repeat:no-repeat;background-size:128px 32px;background-position:0 0;image-rendering:pixelated;transform:translateZ(0);transition:transform 120ms steps(2,jump-none);user-select:none;-webkit-user-drag:none}',
+      '.dsh-pet[data-frame="idle_lo"] .dsh-pet__sprite{background-position:-32px 0}',
+      '.dsh-pet[data-frame="blink"] .dsh-pet__sprite{background-position:-64px 0}',
+      '.dsh-pet[data-frame="happy"] .dsh-pet__sprite{background-position:-96px 0}',
+      '.dsh-pet[data-state="hover"] .dsh-pet__sprite{transform:translate3d(0,-2px,0)}',
+      '.dsh-pet[data-state="happy"] .dsh-pet__sprite{animation:dsh-pet-bounce 480ms steps(1,end) 1}',
+      '@keyframes dsh-pet-bounce{0%{transform:translate3d(0,0,0)}25%{transform:translate3d(0,2px,0)}60%{transform:translate3d(0,-2px,0)}100%{transform:translate3d(0,0,0)}}',
+      '.dsh-pet[data-state="dash"] .dsh-pet__sprite{animation:dsh-pet-dive 600ms steps(3,end) 1}',
+      '@keyframes dsh-pet-dive{0%{transform:translate3d(0,0,0)}35%{transform:translate3d(0,3px,0)}100%{transform:translate3d(0,0,0)}}',
+      '.dsh-pet__hide{position:absolute;top:-6px;right:-6px;width:14px;height:14px;padding:0;border:0;border-radius:50%;background:#ece7dd;color:#7f7869;font:10px/14px "SF Mono",Consolas,monospace;text-align:center;cursor:pointer;opacity:0;transition:opacity 120ms linear;pointer-events:none}',
+      '.dsh-pet:hover .dsh-pet__hide,.dsh-pet:focus-within .dsh-pet__hide,.dsh-pet__hide:focus-visible{opacity:1;pointer-events:auto}',
+      '.dsh-pet__hide:hover{background:#e3ddd1;color:#1d1b16}',
+      '.dsh-pet__hide:focus-visible{outline:2px solid #da7756;outline-offset:1px}',
+      '.dsh-pet__bubble{position:absolute;right:0;bottom:36px;padding:2px 6px;border-radius:4px;background:#ece7dd;color:#1d1b16;font:11px/16px "SF Mono",Consolas,monospace;white-space:nowrap;opacity:0;transition:opacity 120ms linear;pointer-events:none}',
+      '.dsh-pet[data-bubble="1"] .dsh-pet__bubble{opacity:1}',
+      '.dsh-pet-restore{border:0;padding:0 2px;background:transparent;color:#87867f;font:12px/16px "SF Mono",Consolas,monospace;cursor:pointer}',
+      '.dsh-pet-restore:hover{color:#1d1b16}',
+      '.dsh-pet-restore:focus-visible{outline:2px solid #da7756;outline-offset:1px}',
+      '.dsh-pet[data-collision="1"]{transform:translateY(-8px)}',
+      '.dsh-pet[data-collision="2"]{display:none}',
+      'body[data-ds-dark-theme] .dsh-pet::before{background:radial-gradient(circle,rgba(92,121,255,.28),rgba(92,121,255,0) 70%)}',
+      'body[data-ds-dark-theme] .dsh-pet__hide{background:#322f2b;color:#b9b0a2}',
+      'body[data-ds-dark-theme] .dsh-pet__bubble{background:#322f2b;color:#f0ede4}',
+      '@media (max-width:720px){.dsh-pet{display:none!important}}',
+      '@media (prefers-reduced-motion:reduce){.dsh-pet__sprite{transition:none;animation:none!important}.dsh-pet::before{transition:none}.dsh-pet__hide,.dsh-pet__bubble{transition:none}.dsh-pet[data-state="hover"] .dsh-pet__sprite{transform:none}}',
+    ].join('\n')
+
+    /** Paint the four matrices into one 64×16 PNG data URL (one sheet per theme). */
+    function petSpriteUrl(palette) {
+      const canvas = document.createElement('canvas')
+      canvas.width = 16 * PET_FRAME_ORDER.length
+      canvas.height = 16
+      const context = canvas.getContext('2d')
+      if (context === null) return null
+      for (let index = 0; index < PET_FRAME_ORDER.length; index += 1) {
+        const rows = PET_FRAMES[PET_FRAME_ORDER[index]]
+        for (let y = 0; y < 16; y += 1) {
+          const row = rows[y]
+          for (let x = 0; x < 16; x += 1) {
+            const color = palette[row[x]]
+            if (color === undefined) continue
+            context.fillStyle = color
+            context.fillRect(index * 16 + x, y, 1, 1)
+          }
+        }
+      }
+      try {
+        return canvas.toDataURL('image/png')
+      } catch {
+        return null
+      }
+    }
+
+    function mountDesktopPet() {
+      const reducedMotionQuery = (() => {
+        try {
+          return window.matchMedia('(prefers-reduced-motion: reduce)')
+        } catch {
+          return null
+        }
+      })()
+      const reducedMotion = () => reducedMotionQuery !== null && reducedMotionQuery.matches === true
+      const pageHidden = () => {
+        try {
+          return document.visibilityState === 'hidden'
+        } catch {
+          return false
+        }
+      }
+      const background = () => document.body ?? document.documentElement
+      const findCard = () => document.querySelector('[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])')
+      const findTray = () => document.querySelector('.dsh-composer-tray')
+
+      let disposed = false
+      let styleEl = null
+      let shell = null
+      let sprite = null
+      let hideButton = null
+      let bubbleEl = null
+      let restoreButton = null
+      let anchor = PET_ANCHOR_CARD
+      let sheetLight = null
+      let sheetDark = null
+      let frame = 'idle'
+      let breathPhase = 0
+      let state = 'idle'
+      let cooldown = false
+      let hiddenFlag = false
+      let breathTimer = 0
+      let blinkTimer = 0
+      let blinkRestoreTimer = 0
+      let reactionTimer = 0
+      let bubbleTimer = 0
+      let ensureTimer = 0
+      let lastSendAt = 0
+      let pointerStart = null
+      let mountObserver = null
+      let themeObserver = null
+      let resizeObserver = null
+      let intersectionObserver = null
+
+      try {
+        hiddenFlag = window.localStorage.getItem(PET_HIDDEN_KEY) === '1'
+      } catch {
+        hiddenFlag = false
+      }
+
+      const readHidden = () => hiddenFlag
+      const writeHidden = (hidden) => {
+        hiddenFlag = hidden === true
+        try {
+          if (hiddenFlag) window.localStorage.setItem(PET_HIDDEN_KEY, '1')
+          else window.localStorage.removeItem(PET_HIDDEN_KEY)
+        } catch {
+          // Restricted profiles: the toggle still works for this session.
+        }
+      }
+
+      const ensureStyle = () => {
+        if (styleEl !== null && styleEl.isConnected) return
+        styleEl = document.createElement('style')
+        styleEl.dataset.plugin = 'dsh-claude-code-desktop-theme'
+        styleEl.dataset.pluginCss = 'dsh-claude-code-desktop-theme/pet.css'
+        styleEl.textContent = PET_CSS
+        document.head.appendChild(styleEl)
+      }
+
+      const isDarkTheme = () => {
+        try {
+          return document.body !== null && document.body.hasAttribute('data-ds-dark-theme')
+        } catch {
+          return false
+        }
+      }
+      const applySheet = () => {
+        if (shell === null) return
+        if (sheetLight === null) sheetLight = petSpriteUrl(PET_PALETTE_LIGHT)
+        if (sheetDark === null) sheetDark = petSpriteUrl(PET_PALETTE_DARK)
+        const candidate = isDarkTheme() ? (sheetDark ?? sheetLight) : (sheetLight ?? sheetDark)
+        if (typeof candidate === 'string' && candidate !== '') {
+          shell.style.setProperty('--dsh-pet-sheet', 'url("' + candidate + '")')
+        }
+      }
+
+      const setFrame = (next) => {
+        frame = next
+        if (shell !== null) shell.dataset.frame = next
+      }
+      const setState = (next) => {
+        state = next
+        if (shell !== null) shell.dataset.state = next
+      }
+      const idleFrame = () => (breathPhase === 0 ? 'idle' : 'idle_lo')
+
+      const stopBreath = () => {
+        if (breathTimer !== 0) {
+          window.clearInterval(breathTimer)
+          breathTimer = 0
+        }
+      }
+      const startBreath = () => {
+        stopBreath()
+        if (disposed || shell === null || pageHidden() || reducedMotion()) return
+        if (state === 'happy' || state === 'dash') return
+        breathTimer = window.setInterval(() => {
+          if (disposed || pageHidden()) return
+          if (state === 'happy' || state === 'dash') return
+          breathPhase = breathPhase === 0 ? 1 : 0
+          setFrame(idleFrame())
+        }, PET_BREATH_MS)
+      }
+      const stopBlinks = () => {
+        if (blinkTimer !== 0) {
+          window.clearTimeout(blinkTimer)
+          blinkTimer = 0
+        }
+        if (blinkRestoreTimer !== 0) {
+          window.clearTimeout(blinkRestoreTimer)
+          blinkRestoreTimer = 0
+        }
+      }
+      const scheduleBlink = () => {
+        stopBlinks()
+        if (disposed || shell === null || pageHidden() || reducedMotion()) return
+        blinkTimer = window.setTimeout(() => {
+          blinkTimer = 0
+          if (disposed || pageHidden() || state === 'happy' || state === 'dash') {
+            scheduleBlink()
+            return
+          }
+          setFrame('blink')
+          blinkRestoreTimer = window.setTimeout(() => {
+            blinkRestoreTimer = 0
+            if (disposed) return
+            if (state !== 'happy' && state !== 'dash') setFrame(idleFrame())
+            scheduleBlink()
+          }, PET_BLINK_MS)
+        }, 3500 + Math.floor(Math.random() * 4000))
+      }
+
+      const clearBubble = () => {
+        if (bubbleTimer !== 0) {
+          window.clearTimeout(bubbleTimer)
+          bubbleTimer = 0
+        }
+        if (shell !== null) shell.removeAttribute('data-bubble')
+      }
+      const showBubble = (text) => {
+        if (shell === null) return
+        if (bubbleEl !== null) bubbleEl.textContent = text
+        shell.dataset.bubble = '1'
+        if (bubbleTimer !== 0) window.clearTimeout(bubbleTimer)
+        bubbleTimer = window.setTimeout(() => {
+          bubbleTimer = 0
+          if (shell !== null) shell.removeAttribute('data-bubble')
+        }, PET_BUBBLE_MS)
+      }
+
+      const stopReaction = () => {
+        if (reactionTimer !== 0) {
+          window.clearTimeout(reactionTimer)
+          reactionTimer = 0
+        }
+        cooldown = false
+      }
+      const react = (kind) => {
+        if (disposed || shell === null || cooldown || pageHidden()) return
+        cooldown = true
+        stopBreath()
+        stopBlinks()
+        const nextState = kind === 'dash' ? 'dash' : 'happy'
+        setState(nextState)
+        setFrame('happy')
+        showBubble(kind === 'dash' ? '噗通' : '咕噜')
+        stopReaction()
+        cooldown = true
+        reactionTimer = window.setTimeout(() => {
+          reactionTimer = 0
+          cooldown = false
+          if (disposed) return
+          const stillHovered = shell !== null && typeof shell.matches === 'function' && shell.matches(':hover')
+          if (state === 'hover' || stillHovered) setState('hover')
+          else setState('idle')
+          setFrame(idleFrame())
+          if (state === 'hover' || state === 'idle') {
+            startBreath()
+            scheduleBlink()
+          }
+        }, kind === 'dash' ? PET_DASH_MS : Math.max(PET_HAPPY_MS, PET_COOLDOWN_MS))
+      }
+
+      // pointerover/out bubble to the shell and carry `relatedTarget`, so moving
+      // between the sprite and the hide button never flickers the hover state.
+      const relatedInsideShell = (event) => {
+        const related = event.relatedTarget
+        if (related === null || typeof related !== 'object') return false
+        return shell !== null && shell.contains(related) === true
+      }
+      const onPointerOver = (event) => {
+        if (relatedInsideShell(event)) return
+        if (state === 'idle' && cooldown === false) {
+          setState('hover')
+          startBreath()
+        }
+      }
+      const onPointerOut = (event) => {
+        if (relatedInsideShell(event)) return
+        if (state === 'hover') {
+          setState('idle')
+          startBreath()
+        }
+      }
+      const onSpritePointerDown = (event) => {
+        // Keep the composer's focus and caret exactly where the user left them.
+        event.preventDefault()
+        pointerStart = { x: event.clientX, y: event.clientY, at: Date.now() }
+      }
+      const onSpritePointerUp = (event) => {
+        const start = pointerStart
+        pointerStart = null
+        if (start === null) return
+        if (Date.now() - start.at > 250) return
+        if (Math.abs(event.clientX - start.x) > 6) return
+        if (Math.abs(event.clientY - start.y) > 6) return
+        react('happy')
+      }
+      const onPointerCancel = () => {
+        pointerStart = null
+      }
+      const onHideClick = (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        writeHidden(true)
+        removeShell()
+        ensureRestore()
+      }
+      const onRestoreClick = (event) => {
+        event.preventDefault()
+        writeHidden(false)
+        removeRestore()
+        ensureMounted()
+      }
+
+      const buildShell = () => {
+        const node = document.createElement('div')
+        node.className = PET_CLASS
+        node.dataset.anchor = anchor
+        node.dataset.state = 'idle'
+        node.dataset.frame = 'idle'
+        const image = document.createElement('span')
+        image.className = PET_SPRITE_CLASS
+        image.setAttribute('role', 'img')
+        image.setAttribute('aria-label', 'DeepSeek 像素小鲸鱼')
+        const hide = document.createElement('button')
+        hide.type = 'button'
+        hide.className = PET_HIDE_CLASS
+        hide.setAttribute('aria-label', '隐藏小鲸鱼')
+        hide.title = '隐藏小鲸鱼'
+        hide.textContent = '×'
+        hide.addEventListener('click', onHideClick)
+        const tip = document.createElement('span')
+        tip.className = PET_BUBBLE_CLASS
+        tip.setAttribute('aria-hidden', 'true')
+        node.append(image, hide, tip)
+        node.addEventListener('pointerover', onPointerOver)
+        node.addEventListener('pointerout', onPointerOut)
+        image.addEventListener('pointerdown', onSpritePointerDown)
+        image.addEventListener('pointerup', onSpritePointerUp)
+        image.addEventListener('pointercancel', onPointerCancel)
+        return { node, image, hide, tip }
+      }
+
+      const removeShell = () => {
+        stopBreath()
+        stopBlinks()
+        stopReaction()
+        clearBubble()
+        if (resizeObserver !== null) {
+          resizeObserver.disconnect()
+          resizeObserver = null
+        }
+        if (intersectionObserver !== null) {
+          intersectionObserver.disconnect()
+          intersectionObserver = null
+        }
+        if (shell !== null) shell.remove()
+        shell = null
+        sprite = null
+        hideButton = null
+        bubbleEl = null
+        pointerStart = null
+        state = 'idle'
+        frame = 'idle'
+      }
+
+      const ensureRestore = () => {
+        if (disposed) return
+        if (restoreButton !== null && restoreButton.isConnected) return
+        const tray = findTray()
+        if (tray === null) return
+        const host = tray.querySelector('.dsh-tray-right') ?? tray
+        restoreButton = document.createElement('button')
+        restoreButton.type = 'button'
+        restoreButton.className = PET_RESTORE_CLASS
+        restoreButton.setAttribute('aria-label', '显示小鲸鱼')
+        restoreButton.title = '显示小鲸鱼'
+        restoreButton.textContent = '鲸'
+        restoreButton.addEventListener('click', onRestoreClick)
+        host.appendChild(restoreButton)
+      }
+      const removeRestore = () => {
+        if (restoreButton === null) return
+        restoreButton.remove()
+        restoreButton = null
+      }
+
+      const overflowVisible = (element) => {
+        try {
+          const style = window.getComputedStyle(element)
+          return style.overflow === 'visible' && style.overflowX === 'visible' && style.overflowY === 'visible'
+        } catch {
+          return false
+        }
+      }
+      const chooseAnchor = (card) => (overflowVisible(card) ? PET_ANCHOR_CARD : PET_ANCHOR_FIXED)
+
+      const position = () => {
+        if (shell === null || anchor !== PET_ANCHOR_FIXED) return
+        const card = findCard()
+        if (card === null) return
+        const rect = card.getBoundingClientRect()
+        const left = Math.max(0, Math.round(rect.right - PET_OFFSET_SIDE - PET_SPRITE_PX))
+        const top = Math.max(0, Math.round(rect.top - PET_OFFSET_TOP))
+        shell.style.left = left + 'px'
+        shell.style.top = top + 'px'
+      }
+
+      const hitTest = (offsetY) => {
+        if (shell === null) return false
+        const rect = shell.getBoundingClientRect()
+        if (rect.width === 0 || rect.height === 0) return false
+        const x = Math.round(rect.left + rect.width / 2)
+        const y = Math.round(rect.top + rect.height / 2) - (offsetY ?? 0)
+        let target = null
+        try {
+          target = document.elementFromPoint(x, y)
+        } catch {
+          return false
+        }
+        if (target === null) return false
+        if (shell.contains(target)) return false
+        if (target.closest('.dsh-pet') !== null) return false
+        return target.closest('button,[role="button"],textarea,input,select,[contenteditable="true"],[contenteditable=""]') !== null
+      }
+      const guardCollision = () => {
+        if (shell === null) return
+        shell.removeAttribute('data-collision')
+        position()
+        if (hitTest(0) === false) return
+        shell.dataset.collision = '1'
+        if (hitTest(8)) shell.dataset.collision = '2'
+      }
+
+      const observeAnchor = (card) => {
+        if (resizeObserver !== null) {
+          resizeObserver.disconnect()
+          resizeObserver = null
+        }
+        if (anchor !== PET_ANCHOR_FIXED) return
+        try {
+          resizeObserver = new ResizeObserver(() => {
+            if (disposed) return
+            position()
+            guardCollision()
+          })
+          resizeObserver.observe(card)
+        } catch {
+          resizeObserver = null
+        }
+      }
+
+      const watchIntersection = () => {
+        if (shell === null) return
+        if (intersectionObserver !== null) {
+          intersectionObserver.disconnect()
+          intersectionObserver = null
+        }
+        try {
+          intersectionObserver = new IntersectionObserver((entries) => {
+            if (disposed) return
+            const entry = entries[entries.length - 1]
+            if (entry === undefined) return
+            if (entry.isIntersecting) {
+              startBreath()
+              scheduleBlink()
+            } else {
+              stopBreath()
+              stopBlinks()
+            }
+          }, { threshold: 0 })
+          intersectionObserver.observe(shell)
+        } catch {
+          intersectionObserver = null
+        }
+      }
+
+      const isClipped = () => {
+        if (shell === null) return false
+        const rect = shell.getBoundingClientRect()
+        if (rect.width === 0 || rect.height === 0) return false
+        let target = null
+        try {
+          target = document.elementFromPoint(
+            Math.round(rect.left + rect.width / 2),
+            Math.round(rect.top + rect.height / 2),
+          )
+        } catch {
+          return false
+        }
+        if (target === null) return false
+        return shell.contains(target) === false
+      }
+
+      const mountShell = (card, forcedAnchor) => {
+        anchor = forcedAnchor ?? chooseAnchor(card)
+        const built = buildShell()
+        shell = built.node
+        sprite = built.image
+        hideButton = built.hide
+        bubbleEl = built.tip
+        applySheet()
+        const host = anchor === PET_ANCHOR_CARD ? card : background()
+        host.appendChild(shell)
+        startBreath()
+        scheduleBlink()
+        position()
+        guardCollision()
+        observeAnchor(card)
+        watchIntersection()
+      }
+
+      const ensureMounted = () => {
+        if (disposed) return
+        ensureStyle()
+        if (readHidden()) {
+          removeShell()
+          ensureRestore()
+          return
+        }
+        removeRestore()
+        const card = findCard()
+        if (card === null) {
+          removeShell()
+          return
+        }
+        if (shell !== null && shell.isConnected) {
+          position()
+          return
+        }
+        if (shell !== null) removeShell()
+        mountShell(card)
+        // An ancestor of the card can clip the top-right corner even when the
+        // card itself is overflow:visible; the sprite would then be invisible.
+        // Re-mount once as a viewport-fixed overlay instead of guessing further.
+        if (anchor === PET_ANCHOR_CARD && isClipped()) {
+          const cardAgain = findCard()
+          if (cardAgain !== null) {
+            removeShell()
+            mountShell(cardAgain, PET_ANCHOR_FIXED)
+          }
+        }
+      }
+
+      const scheduleEnsure = () => {
+        if (disposed || ensureTimer !== 0) return
+        ensureTimer = window.setTimeout(() => {
+          ensureTimer = 0
+          if (disposed) return
+          ensureMounted()
+        }, 300)
+      }
+
+      const onVisibility = () => {
+        if (disposed) return
+        if (pageHidden()) {
+          stopBreath()
+          stopBlinks()
+          if (shell !== null) shell.dataset.state = 'paused'
+          return
+        }
+        if (shell !== null && (state === 'idle' || state === 'hover')) {
+          shell.dataset.state = state
+          startBreath()
+          scheduleBlink()
+        }
+        ensureMounted()
+      }
+      const onResize = () => {
+        if (disposed) return
+        position()
+        guardCollision()
+      }
+      const onReducedMotionChange = () => {
+        if (disposed) return
+        if (reducedMotion()) {
+          stopBreath()
+          stopBlinks()
+          setFrame('idle')
+        } else if (state === 'idle' || state === 'hover') {
+          startBreath()
+          scheduleBlink()
+        }
+      }
+
+      const triggerSend = () => {
+        const now = Date.now()
+        if (now - lastSendAt < PET_SEND_DEDUPE_MS) return
+        lastSendAt = now
+        react('dash')
+      }
+      const onKeyDown = (event) => {
+        if (event.key !== 'Enter' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return
+        if (event.isComposing === true || event.keyCode === 229) return
+        const target = event.target
+        if (target === null || typeof target !== 'object') return
+        const element = target.nodeType === 1 ? target : target.parentElement
+        if (element === null || typeof element.closest !== 'function') return
+        if (element.closest('[class*="_root"]:has([data-lexical-editor="true"])') === null) return
+        triggerSend()
+      }
+      const onSendPointerUp = (event) => {
+        const target = event.target
+        if (target === null || typeof target !== 'object') return
+        const element = target.nodeType === 1 ? target : target.parentElement
+        if (element === null || typeof element.closest !== 'function') return
+        if (element.closest('.dsh-pet') !== null) return
+        const button = element.closest('button')
+        if (button === null || button.closest('[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])') === null) return
+        const label = (button.getAttribute('aria-label') ?? '') + ' ' + (button.title ?? '')
+        if (/发送|send/i.test(label) === false) return
+        triggerSend()
+      }
+
+      const debug = () => {
+        const snapshot = {
+          mounted: shell !== null && shell.isConnected,
+          anchor: anchor,
+          state: state,
+          frame: frame,
+          hidden: readHidden(),
+          collision: shell === null ? null : (shell.getAttribute('data-collision') ?? 'none'),
+          nodes: shell === null ? 0 : 1 + shell.childElementCount,
+          spriteReady: sheetLight !== null,
+        }
+        try {
+          console.table(snapshot)
+        } catch {
+          // Console formatting is a nicety.
+        }
+        return snapshot
+      }
+      window.__dshClaudeThemePetDebug = debug
+
+      ensureMounted()
+      try {
+        mountObserver = new MutationObserver(scheduleEnsure)
+        mountObserver.observe(background(), { childList: true, subtree: true })
+      } catch {
+        mountObserver = null
+      }
+      try {
+        themeObserver = new MutationObserver(() => {
+          if (disposed) return
+          applySheet()
+        })
+        themeObserver.observe(background(), { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
+      } catch {
+        themeObserver = null
+      }
+      document.addEventListener('visibilitychange', onVisibility)
+      document.addEventListener('keydown', onKeyDown, { passive: true })
+      document.addEventListener('pointerup', onSendPointerUp, true)
+      window.addEventListener('resize', onResize)
+      try {
+        reducedMotionQuery?.addEventListener?.('change', onReducedMotionChange)
+      } catch {
+        // Older matchMedia: reduced motion is read at mount time only.
+      }
+
+      return () => {
+        disposed = true
+        if (ensureTimer !== 0) {
+          window.clearTimeout(ensureTimer)
+          ensureTimer = 0
+        }
+        removeShell()
+        removeRestore()
+        if (mountObserver !== null) mountObserver.disconnect()
+        if (themeObserver !== null) themeObserver.disconnect()
+        document.removeEventListener('visibilitychange', onVisibility)
+        document.removeEventListener('keydown', onKeyDown)
+        document.removeEventListener('pointerup', onSendPointerUp, true)
+        window.removeEventListener('resize', onResize)
+        try {
+          reducedMotionQuery?.removeEventListener?.('change', onReducedMotionChange)
+        } catch {
+          // Ignore.
+        }
+        if (styleEl !== null) {
+          styleEl.remove()
+          styleEl = null
+        }
+        if (window.__dshClaudeThemePetDebug === debug) window.__dshClaudeThemePetDebug = undefined
+      }
+    }
+
     // ── Real-time voice input ───────────────────────────────────────────────
     // The official voice bundle records first and transcribes only on Stop. This
-    // button records the microphone itself, sends cumulative WAV chunks to the
-    // same `remote.speech.transcribe` endpoint about once a second and writes the
-    // live transcript into the composer draft through `inputActions.setDraft`.
+    // button records the microphone itself and writes a live transcript into the
+    // composer draft through `inputActions.setDraft`.
+    //
+    // Audio path: microphone → AudioWorklet (ScriptProcessor fallback) → 16 kHz
+    // mono float samples. The Host validates each upload as a canonical 16 kHz
+    // mono PCM16 WAV (`validateWave` in the speech-to-text package), so capture
+    // resamples explicitly instead of trusting `AudioContext({ sampleRate })`.
+    // Only audio added since the previous transcript is uploaded, with a short
+    // overlap that the text merger removes; Stop runs one full-recording
+    // transcription whose result replaces the incremental preview. That keeps
+    // encoding/upload linear instead of re-encoding the whole recording per tick.
+    //
     // It is only mounted when the speech Remote is available; otherwise the
     // official microphone stays visible and untouched.
     const LIVE_VOICE_CLASS = 'dsh-live-voice'
+    const VOICE_SAMPLE_RATE = 16000
+    const VOICE_MAX_SECONDS = 60
+    const VOICE_CHUNK_SAMPLES = VOICE_SAMPLE_RATE * 1.2
+    const VOICE_OVERLAP_SAMPLES = VOICE_SAMPLE_RATE * 0.4
+    const VOICE_MIN_CHUNK_SAMPLES = VOICE_SAMPLE_RATE * 0.5
+    const VOICE_TICK_MS = 200
+    const VOICE_SILENCE_STOP_MS = 5000
+    const VOICE_NO_SPEECH_STOP_MS = 6000
+    const VOICE_SPEECH_RMS = 0.01
+    const VOICE_MAX_FAILURES = 3
+    const VOICE_FLUSH_TIMEOUT_MS = 160
+    // Microphone constraints, richest first; every entry degrades one processing
+    // feature so a picky driver still yields a usable 16 kHz mono stream.
+    const VOICE_MIC_ATTEMPTS = [
+      { audio: { channelCount: { ideal: 1 }, echoCancellation: { ideal: true }, noiseSuppression: { ideal: true }, autoGainControl: { ideal: true } } },
+      { audio: { channelCount: { ideal: 1 }, echoCancellation: { ideal: true }, noiseSuppression: { ideal: true } } },
+      { audio: { channelCount: { ideal: 1 }, echoCancellation: { ideal: true } } },
+      { audio: { channelCount: { ideal: 1 } } },
+      { audio: true },
+    ]
+
+    /** True when the OS asks for reduced motion (no continuous animation). */
+    const prefersReducedMotion = () => {
+      try {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true
+      } catch {
+        return false
+      }
+    }
+
+    /**
+     * Best-effort identity of the visible session: the host store first, then the
+     * selected sidebar row. Used to release the microphone when the user switches
+     * conversations while recording.
+     */
+    const currentSessionKey = () => {
+      try {
+        const id = bridge.currentSessionId
+        if (typeof id === 'string' && id !== '') return id
+      } catch {
+        // Bridge not mounted on this page.
+      }
+      try {
+        const row = document.querySelector(
+          '[role="treeitem"][data-row-key^="session:"][aria-selected="true"],[role="treeitem"][data-row-key^="session:"][class*="selected"]',
+        )
+        const key = row === null ? '' : (row.getAttribute('data-row-key') ?? '')
+        if (key.startsWith('session:')) return key.slice('session:'.length)
+      } catch {
+        // Restricted document.
+      }
+      return ''
+    }
+
+    // The worklet runs on the audio thread: resample to 16 kHz with a linear
+    // interpolator that carries its phase across render quanta, and post ~64 ms
+    // float chunks plus an RMS level. The main thread therefore does no
+    // per-sample work during recording.
+    const VOICE_WORKLET_SOURCE = [
+      'class DshVoiceCaptureProcessor extends AudioWorkletProcessor {',
+      '  constructor() {',
+      '    super()',
+      '    const rate = typeof sampleRate === "number" && sampleRate > 0 ? sampleRate : 48000',
+      '    this.ratio = Math.max(0.0001, rate / 16000)',
+      '    this.prev2 = 0',
+      '    this.prev = 0',
+      '    this.pos = 0',
+      '    this.pending = new Float32Array(1024)',
+      '    this.pendingLength = 0',
+      '    this.port.onmessage = (event) => {',
+      '      const data = event.data',
+      '      if (data === null || typeof data !== "object") return',
+      '      if (data.type === "flush") {',
+      '        this.flush()',
+      '        this.port.postMessage({ type: "flushed" })',
+      '      }',
+      '    }',
+      '  }',
+      '  flush() {',
+      '    if (this.pendingLength === 0) return',
+      '    const out = this.pending.slice(0, this.pendingLength)',
+      '    let sum = 0',
+      '    for (let i = 0; i < out.length; i += 1) sum += out[i] * out[i]',
+      '    this.port.postMessage({ type: "pcm", pcm: out.buffer, rms: Math.sqrt(sum / out.length) }, [out.buffer])',
+      '    this.pendingLength = 0',
+      '  }',
+      '  push(sample) {',
+      '    if (this.pendingLength === this.pending.length) this.flush()',
+      '    this.pending[this.pendingLength] = sample',
+      '    this.pendingLength += 1',
+      '  }',
+      '  process(inputs) {',
+      '    const channels = inputs[0]',
+      '    if (channels === undefined || channels.length === 0) return true',
+      '    const input = channels[0]',
+      '    const length = input.length',
+      '    if (length < 2) return true',
+      '    const ratio = this.ratio',
+      '    let pos = this.pos',
+      '    while (pos <= length - 2) {',
+      '      const index = Math.floor(pos)',
+      '      let value',
+      '      if (index === -1) value = this.prev + (input[0] - this.prev) * (pos + 1)',
+      '      else if (index < -1) value = this.prev2 + (this.prev - this.prev2) * (pos + 2)',
+      '      else value = input[index] + (input[index + 1] - input[index]) * (pos - index)',
+      '      this.push(value)',
+      '      pos += ratio',
+      '    }',
+      '    this.prev2 = this.prev',
+      '    this.prev = input[length - 1]',
+      '    this.pos = pos - length',
+      '    return true',
+      '  }',
+      '}',
+      'registerProcessor("dsh-voice-capture", DshVoiceCaptureProcessor)',
+    ].join('\n')
 
     function mountRealtimeVoice(ctx) {
       let speech = null
@@ -4819,8 +6534,8 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       if (speech === null || typeof speech.transcribe !== 'function') return () => {}
 
       let catalogPromise = null
-      const getCatalog = () => {
-        if (catalogPromise === null) {
+      const getCatalog = (refresh = false) => {
+        if (refresh || catalogPromise === null) {
           catalogPromise = Promise.resolve()
             .then(() => (typeof speech.catalog === 'function' ? speech.catalog() : null))
             .catch(() => null)
@@ -4828,45 +6543,139 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         return catalogPromise
       }
 
-      const encodeWav = (chunks, sampleRate) => {
-        let length = 0
-        for (const chunk of chunks) length += chunk.length
-        const pcm = new Int16Array(length)
-        let offset = 0
-        for (const chunk of chunks) {
-          for (let i = 0; i < chunk.length; i += 1) {
-            const value = Math.max(-1, Math.min(1, chunk[i]))
-            pcm[offset] = value < 0 ? value * 0x8000 : value * 0x7fff
-            offset += 1
+      /** Linear-interpolation resampler for the ScriptProcessor fallback. */
+      class VoiceResampler {
+        constructor(inputRate, outputRate) {
+          this.ratio = inputRate > 0 ? inputRate / outputRate : 1
+          this.prev2 = 0
+          this.prev = 0
+          this.pos = 0
+        }
+
+        push(input) {
+          const length = input.length
+          if (length < 2) return null
+          const out = new Float32Array(Math.ceil(length / this.ratio) + 2)
+          let count = 0
+          let pos = this.pos
+          while (pos <= length - 2) {
+            const index = Math.floor(pos)
+            let value
+            if (index === -1) value = this.prev + (input[0] - this.prev) * (pos + 1)
+            else if (index < -1) value = this.prev2 + (this.prev - this.prev2) * (pos + 2)
+            else value = input[index] + (input[index + 1] - input[index]) * (pos - index)
+            out[count] = value
+            count += 1
+            pos += this.ratio
           }
+          this.prev2 = this.prev
+          this.prev = input[length - 1]
+          this.pos = pos - length
+          return count === 0 ? null : out.subarray(0, count)
         }
-        const buffer = new ArrayBuffer(44 + pcm.length * 2)
-        const view = new DataView(buffer)
-        const write = (pos, text) => {
-          for (let i = 0; i < text.length; i += 1) view.setUint8(pos + i, text.charCodeAt(i))
+      }
+
+      /** Canonical 16 kHz mono PCM16 WAV → canonical base64 (Host requirement). */
+      const encodeWavBase64 = (samples) => {
+        const bytes = new Uint8Array(44 + samples.length * 2)
+        const view = new DataView(bytes.buffer)
+        const writeText = (offset, text) => {
+          for (let i = 0; i < text.length; i += 1) bytes[offset + i] = text.charCodeAt(i)
         }
-        write(0, 'RIFF')
-        view.setUint32(4, 36 + pcm.length * 2, true)
-        write(8, 'WAVE')
-        write(12, 'fmt ')
+        writeText(0, 'RIFF')
+        view.setUint32(4, bytes.length - 8, true)
+        writeText(8, 'WAVE')
+        writeText(12, 'fmt ')
         view.setUint32(16, 16, true)
         view.setUint16(20, 1, true)
         view.setUint16(22, 1, true)
-        view.setUint32(24, sampleRate, true)
-        view.setUint32(28, sampleRate * 2, true)
+        view.setUint32(24, VOICE_SAMPLE_RATE, true)
+        view.setUint32(28, VOICE_SAMPLE_RATE * 2, true)
         view.setUint16(32, 2, true)
         view.setUint16(34, 16, true)
-        write(36, 'data')
-        view.setUint32(40, pcm.length * 2, true)
-        new Int16Array(buffer, 44).set(pcm)
+        writeText(36, 'data')
+        view.setUint32(40, samples.length * 2, true)
+        for (let i = 0; i < samples.length; i += 1) {
+          const value = Math.max(-1, Math.min(1, samples[i]))
+          view.setInt16(44 + i * 2, Math.round(value * (value < 0 ? 0x8000 : 0x7fff)), true)
+        }
         let binary = ''
-        const bytes = new Uint8Array(buffer)
-        for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i])
+        const block = 0x2000
+        for (let offset = 0; offset < bytes.length; offset += block) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(offset, offset + block))
+        }
         return btoa(binary)
       }
 
+      /** Concatenate the [from, to) sample range of a chunk list. */
+      const sliceSamples = (chunks, from, to) => {
+        const start = Math.max(0, from)
+        const end = Math.max(start, to)
+        const out = new Float32Array(end - start)
+        let cursor = 0
+        let offset = 0
+        for (const chunk of chunks) {
+          const chunkStart = cursor
+          const chunkEnd = cursor + chunk.length
+          cursor = chunkEnd
+          if (chunkEnd <= start) continue
+          if (chunkStart >= end) break
+          const localStart = Math.max(start, chunkStart) - chunkStart
+          const localEnd = Math.min(end, chunkEnd) - chunkStart
+          out.set(chunk.subarray(localStart, localEnd), offset)
+          offset += localEnd - localStart
+        }
+        // Never fabricate trailing silence for a range past the captured audio.
+        return offset === out.length ? out : out.subarray(0, offset)
+      }
+
+      const VOICE_MATCH_PUNCTUATION = /[\s,，。.!！?？;；:：、'"“”‘’()（）\[\]【】{}<>《》〈〉…—–~～`·]/
+
+      /** Strip punctuation/spaces so overlap matching survives ASR drift. */
+      const normalizeTranscript = (text) => {
+        let output = ''
+        const map = []
+        for (let i = 0; i < text.length; i += 1) {
+          const character = text[i]
+          if (VOICE_MATCH_PUNCTUATION.test(character)) continue
+          output += character.toLowerCase()
+          map.push(i)
+        }
+        return { text: output, map }
+      }
+
+      /**
+       * Append only the new tail of an overlapping chunk transcript. Chunks share
+       * ~0.4 s of audio, so their texts share a suffix/prefix seam; matching that
+       * seam (exactly first, then punctuation-insensitively) removes the words a
+       * naive concatenation would duplicate.
+       */
+      const mergeTranscript = (committed, incoming) => {
+        const base = typeof committed === 'string' ? committed : ''
+        const next = typeof incoming === 'string' ? incoming.trim() : ''
+        if (next === '') return base
+        if (base === '') return next
+        if (base === next || base.endsWith(next)) return base
+        const maxExact = Math.min(base.length, next.length, 48)
+        for (let size = maxExact; size >= 2; size -= 1) {
+          if (base.slice(base.length - size) === next.slice(0, size)) return base + next.slice(size)
+        }
+        const baseNormalized = normalizeTranscript(base)
+        const nextNormalized = normalizeTranscript(next)
+        const maxNormalized = Math.min(baseNormalized.text.length, nextNormalized.text.length, 48)
+        for (let size = maxNormalized; size >= 2; size -= 1) {
+          if (baseNormalized.text.slice(baseNormalized.text.length - size) === nextNormalized.text.slice(0, size)) {
+            const consumed = nextNormalized.map[size - 1] + 1
+            return base + next.slice(consumed)
+          }
+        }
+        if (next.startsWith(base)) return next
+        const needsSpace = /[A-Za-z0-9]$/.test(base) && /^[A-Za-z0-9]/.test(next)
+        return needsSpace ? base + ' ' + next : base + next
+      }
+
       const readComposerText = () => {
-        const editor = document.querySelector('.RlGAzG_card [contenteditable="true"]')
+        const editor = document.querySelector('[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]) [contenteditable="true"]')
         if (editor === null) return ''
         // Lexical's contenteditable innerText carries trailing/duplicate line
         // breaks; feeding those back makes the composer grow on every recording.
@@ -4881,9 +6690,11 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       function RealtimeVoiceButton(props) {
         const inputActions = props.inputActions
         const [recording, setRecording] = React.useState(false)
-        const [seconds, setSeconds] = React.useState(0)
         const [error, setError] = React.useState('')
         const sessionRef = React.useRef(null)
+        const stopRef = React.useRef(null)
+        const barsRef = React.useRef([null, null, null])
+        const ringRef = React.useRef(null)
 
         const commitDraft = (session, text) => {
           if (inputActions === undefined || typeof inputActions.setDraft !== 'function') return
@@ -4907,7 +6718,8 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           }
           session.targetText = text
           const current = session.revealedText ?? session.base ?? ''
-          if (immediate || !text.startsWith(current)) {
+          // Reduced motion: no typewriter reveal, insert the transcript at once.
+          if (immediate || prefersReducedMotion() || !text.startsWith(current)) {
             if (session.revealTimer) {
               window.clearInterval(session.revealTimer)
               session.revealTimer = 0
@@ -4936,156 +6748,471 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           }, 22)
         }
 
-        const disposeSession = () => {
-          const session = sessionRef.current
-          if (session === null) return
-          sessionRef.current = null
-          window.clearInterval(session.timer)
-          if (session.revealTimer) window.clearInterval(session.revealTimer)
-          try { session.processor.disconnect() } catch { /* ignore */ }
-          try { session.source.disconnect() } catch { /* ignore */ }
-          try { session.gain.disconnect() } catch { /* ignore */ }
-          session.stream.getTracks().forEach((track) => track.stop())
-          if (session.audioContext.state !== 'closed') session.audioContext.close().catch(() => {})
-        }
-
-        const transcribeLatest = async (session) => {
-          if (session.busy || session.chunks.length === 0) return
-          const duration = session.total / session.sampleRate
-          if (duration < 0.45) return
-          session.busy = true
-          try {
-            const audioBase64 = encodeWav(session.chunks, session.sampleRate)
-            const catalog = await getCatalog()
-            const selection = catalog?.selection ?? {}
-            const result = await speech.transcribe({
-              audioBase64,
-              audioSeconds: duration,
-              ...(typeof selection.providerId === 'string' ? { providerId: selection.providerId } : {}),
-              ...(typeof selection.language === 'string' ? { language: selection.language } : {}),
-            })
-            const text = typeof result === 'string' ? result : (result?.text ?? result?.value?.text ?? '')
-            if (sessionRef.current === session && typeof text === 'string' && text !== '') {
-              session.lastText = text
-              applyDraft(session.base + text, session)
-            }
-          } catch (reason) {
-            if (sessionRef.current === session) {
-              const message = reason instanceof Error ? reason.message : String(reason)
-              setError(message.slice(0, 80))
-            }
-          } finally {
-            session.busy = false
+        const releaseReveal = (session) => {
+          if (session !== null && session.revealTimer !== 0) {
+            window.clearInterval(session.revealTimer)
+            session.revealTimer = 0
           }
         }
 
+        /** Disconnect every capture node and stop the microphone tracks. */
+        const disposeCapture = (session) => {
+          session.released = true
+          const node = session.workletNode
+          session.workletNode = null
+          if (node !== null) {
+            try {
+              node.port.onmessage = null
+            } catch {
+              // Port already closed.
+            }
+            try {
+              node.disconnect()
+            } catch {
+              // Already disconnected.
+            }
+          }
+          const processor = session.processor
+          session.processor = null
+          if (processor !== null) {
+            try {
+              processor.onaudioprocess = null
+            } catch {
+              // Already released.
+            }
+            try {
+              processor.disconnect()
+            } catch {
+              // Already disconnected.
+            }
+          }
+          const source = session.source
+          session.source = null
+          if (source !== null) {
+            try {
+              source.disconnect()
+            } catch {
+              // Already disconnected.
+            }
+          }
+          const silentGain = session.silentGain
+          session.silentGain = null
+          if (silentGain !== null) {
+            try {
+              silentGain.disconnect()
+            } catch {
+              // Already disconnected.
+            }
+          }
+          const stream = session.stream
+          session.stream = null
+          if (stream !== null) {
+            for (const track of stream.getTracks()) {
+              try {
+                track.stop()
+              } catch {
+                // Track already ended.
+              }
+            }
+          }
+        }
+
+        const closeAudioContext = async (session) => {
+          const context = session.audioContext
+          session.audioContext = null
+          if (context === null || context.state === 'closed') return
+          try {
+            await context.close()
+          } catch {
+            // Closing a suspended context can reject; nothing left to release.
+          }
+        }
+
+        /** Ask the worklet to post its partial buffer, bounded by a timeout. */
+        const flushWorklet = (session) => {
+          const node = session.workletNode
+          if (node === null || session.usingWorklet !== true) return Promise.resolve()
+          return new Promise((resolve) => {
+            let settled = false
+            const finish = () => {
+              if (settled) return
+              settled = true
+              if (session.flushResolve === finish) session.flushResolve = null
+              resolve()
+            }
+            session.flushResolve = finish
+            try {
+              node.port.postMessage({ type: 'flush' })
+            } catch {
+              finish()
+              return
+            }
+            window.setTimeout(finish, VOICE_FLUSH_TIMEOUT_MS)
+          })
+        }
+
+        /** Append one resampled 16 kHz block and track speech energy. */
+        const onPcm = (session, samples, rms) => {
+          // `released` (not `stopping`) is the cutoff: Stop flushes the worklet
+          // before releasing, so the final ~64 ms still reaches the final pass.
+          if (sessionRef.current !== session || session.released) return
+          if (samples.length === 0) return
+          session.chunks.push(samples)
+          session.total += samples.length
+          session.level = rms
+          if (rms > VOICE_SPEECH_RMS) {
+            session.lastVoiceAt = performance.now()
+            session.voiceSinceCursor = true
+          }
+        }
+
+        /** Map the Host catalog onto the request fields the provider accepts. */
+        const resolveSelection = (catalog) => {
+          const selection = catalog !== null && typeof catalog === 'object' ? catalog.selection : null
+          const providerId = typeof selection?.providerId === 'string' ? selection.providerId : ''
+          const providers = Array.isArray(catalog?.providers) ? catalog.providers : []
+          const provider = providers.find((item) => item !== null && typeof item === 'object' && item.id === providerId) ?? null
+          const languages = Array.isArray(provider?.languages) ? provider.languages : []
+          const requested = typeof selection?.language === 'string' ? selection.language : ''
+          const language = requested !== '' && (languages.length === 0 || languages.includes(requested)) ? requested : ''
+          const catalogSeconds = typeof catalog?.maxDurationSeconds === 'number' && catalog.maxDurationSeconds > 0
+            ? catalog.maxDurationSeconds
+            : VOICE_MAX_SECONDS
+          const maxBytes = typeof catalog?.maxAudioBytes === 'number' && catalog.maxAudioBytes > 44
+            ? catalog.maxAudioBytes
+            : 4 * 1024 * 1024
+          const byteSeconds = Math.floor((maxBytes - 44) / (VOICE_SAMPLE_RATE * 2))
+          return {
+            providerId,
+            language,
+            maxSeconds: Math.max(1, Math.min(VOICE_MAX_SECONDS, catalogSeconds, byteSeconds)),
+            maxBytes,
+          }
+        }
+
+        /** One Host transcription; failures are returned instead of thrown. */
+        const transcribe = async (session, audioBase64) => {
+          try {
+            const request = { audioBase64 }
+            if (session.selection.providerId !== '') request.providerId = session.selection.providerId
+            if (session.selection.language !== '') request.language = session.selection.language
+            const result = await speech.transcribe(request)
+            const text = typeof result === 'string' ? result : (typeof result?.text === 'string' ? result.text : '')
+            return { text: text.trim(), failure: null }
+          } catch (reason) {
+            return { text: '', failure: reason instanceof Error ? reason : new Error(String(reason)) }
+          }
+        }
+
+        const applyIncremental = (session, text) => {
+          if (text === '') return
+          const merged = mergeTranscript(session.committedText, text)
+          if (merged === session.committedText) return
+          session.committedText = merged
+          session.lastText = merged
+          applyDraft(session.base + merged, session)
+        }
+
+        /**
+         * Upload only the audio added since the last accepted chunk, plus the
+         * overlap samples needed to rebuild the seam. A chunk that carries no
+         * voice-level audio is skipped locally (no request, hallucination-proof).
+         */
+        const maybeTranscribe = (session) => {
+          if (session.busy || session.stopping) return
+          if (session.total - session.cursor < VOICE_CHUNK_SAMPLES) return
+          const end = session.total
+          const start = Math.max(0, session.cursor - VOICE_OVERLAP_SAMPLES)
+          if (end - start < VOICE_MIN_CHUNK_SAMPLES) return
+          const samples = sliceSamples(session.chunks, start, end)
+          if (samples.length < VOICE_MIN_CHUNK_SAMPLES) return
+          if (session.voiceSinceCursor !== true) {
+            session.cursor = end
+            return
+          }
+          session.voiceSinceCursor = false
+          session.busy = true
+          const audioBase64 = encodeWavBase64(samples)
+          transcribe(session, audioBase64)
+            .then((outcome) => {
+              if (sessionRef.current !== session) return
+              if (outcome.failure !== null) {
+                session.failures += 1
+                if (session.failures >= VOICE_MAX_FAILURES) {
+                  setError(outcome.failure.message.slice(0, 80))
+                  void stop('error')
+                }
+                return
+              }
+              session.failures = 0
+              session.cursor = end
+              applyIncremental(session, outcome.text)
+            })
+            .finally(() => {
+              session.busy = false
+            })
+        }
+
+        const stop = async (reason = 'user') => {
+          const session = sessionRef.current
+          if (session === null || session.stopping) return
+          session.stopping = true
+          setRecording(false)
+          if (session.tickTimer !== 0) {
+            window.clearInterval(session.tickTimer)
+            session.tickTimer = 0
+          }
+          // Free the microphone before the final inference: the device is never
+          // held open while the Host transcribes.
+          await flushWorklet(session)
+          disposeCapture(session)
+          for (let attempt = 0; attempt < 30 && session.busy; attempt += 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 100))
+          }
+          const applyFinal = reason === 'user' || reason === 'limit' || reason === 'silence' || reason === 'empty' || reason === 'hidden'
+          if (applyFinal && session.total > 0) {
+            // One full-recording pass: whole context, no chunk seams. This result
+            // replaces the incremental preview and is the text that stays.
+            const samples = sliceSamples(session.chunks, 0, session.total)
+            const maxSamples = Math.max(1, Math.floor((session.maxBytes - 44) / 2))
+            const tail = samples.length > maxSamples ? samples.subarray(samples.length - maxSamples) : samples
+            const outcome = await transcribe(session, encodeWavBase64(tail))
+            if (outcome.failure !== null) {
+              setError(outcome.failure.message.slice(0, 80))
+              if (session.lastText !== '') applyDraft(session.base + session.lastText, session, true)
+              // Transcription failed: give the official microphone back.
+              document.documentElement.removeAttribute('data-dsh-realtime-voice')
+            } else if (outcome.text !== '') {
+              session.committedText = outcome.text
+              session.lastText = outcome.text
+              applyDraft(session.base + outcome.text, session, true)
+            } else if (session.lastText !== '') {
+              applyDraft(session.base + session.lastText, session, true)
+            }
+          }
+          // Repeated chunk failures mean the recognition path is broken: stop and
+          // hand the official microphone back instead of hiding it forever.
+          if (reason === 'error') document.documentElement.removeAttribute('data-dsh-realtime-voice')
+          releaseReveal(session)
+          await closeAudioContext(session)
+          if (sessionRef.current === session) sessionRef.current = null
+        }
+        stopRef.current = stop
+
+        const acquireMicrophone = async () => {
+          const devices = navigator.mediaDevices
+          if (devices === undefined || typeof devices.getUserMedia !== 'function') {
+            throw new Error('当前环境不支持麦克风')
+          }
+          let lastError = null
+          for (const constraints of VOICE_MIC_ATTEMPTS) {
+            try {
+              return await devices.getUserMedia(constraints)
+            } catch (reason) {
+              lastError = reason
+              // A denied permission never becomes a granted one by retrying.
+              if (reason instanceof DOMException && reason.name === 'NotAllowedError') break
+            }
+          }
+          throw lastError instanceof Error ? lastError : new Error('无法访问麦克风')
+        }
+
+        /** AudioWorklet first, ScriptProcessor fallback, both resampled to 16 kHz. */
+        const startCapture = async (session) => {
+          const Ctor = window.AudioContext ?? window.webkitAudioContext
+          if (typeof Ctor !== 'function') throw new Error('当前环境不支持录音')
+          let context = null
+          try {
+            context = new Ctor({ sampleRate: VOICE_SAMPLE_RATE, latencyHint: 'interactive' })
+          } catch {
+            context = new Ctor({ latencyHint: 'interactive' })
+          }
+          session.audioContext = context
+          if (context.state === 'suspended') {
+            try {
+              await context.resume()
+            } catch {
+              // A user gesture normally resumes it; capture still connects.
+            }
+          }
+          const source = context.createMediaStreamSource(session.stream)
+          session.source = source
+          const silentGain = context.createGain()
+          silentGain.gain.value = 0
+          session.silentGain = silentGain
+          let worklet = null
+          if (context.audioWorklet !== undefined && typeof AudioWorkletNode === 'function') {
+            try {
+              const url = URL.createObjectURL(new Blob([VOICE_WORKLET_SOURCE], { type: 'application/javascript' }))
+              try {
+                await context.audioWorklet.addModule(url)
+              } finally {
+                URL.revokeObjectURL(url)
+              }
+              worklet = new AudioWorkletNode(context, 'dsh-voice-capture', {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                outputChannelCount: [1],
+                channelCount: 1,
+                channelCountMode: 'explicit',
+                channelInterpretation: 'speakers',
+              })
+            } catch (reason) {
+              // CSP-blocked blob module, unsupported worklet, or registration
+              // failure: keep the already-created context and use the fallback.
+              worklet = null
+              session.workletError = reason instanceof Error ? reason.message : String(reason)
+              console.info('[dsh-live-voice] AudioWorklet unavailable, using ScriptProcessor fallback:', session.workletError)
+            }
+          }
+          if (worklet !== null) {
+            session.workletNode = worklet
+            session.usingWorklet = true
+            worklet.port.onmessage = (event) => {
+              const data = event.data
+              if (data === null || typeof data !== 'object') return
+              if (data.type === 'pcm') {
+                onPcm(session, new Float32Array(data.pcm), typeof data.rms === 'number' ? data.rms : 0)
+              } else if (data.type === 'flushed' && typeof session.flushResolve === 'function') {
+                session.flushResolve()
+              }
+            }
+            source.connect(worklet)
+            worklet.connect(silentGain)
+            silentGain.connect(context.destination)
+            return
+          }
+          const processor = context.createScriptProcessor(4096, 1, 1)
+          session.processor = processor
+          session.usingWorklet = false
+          session.resampler = new VoiceResampler(context.sampleRate, VOICE_SAMPLE_RATE)
+          processor.onaudioprocess = (event) => {
+            if (sessionRef.current !== session || session.stopping) return
+            const input = event.inputBuffer.getChannelData(0)
+            const resampled = session.resampler === null ? input : session.resampler.push(input)
+            if (resampled === null || resampled.length === 0) return
+            let sum = 0
+            for (let i = 0; i < resampled.length; i += 1) sum += resampled[i] * resampled[i]
+            onPcm(session, resampled, Math.sqrt(sum / resampled.length))
+          }
+          source.connect(processor)
+          processor.connect(silentGain)
+          silentGain.connect(context.destination)
+        }
+
         const start = async () => {
+          if (sessionRef.current !== null) return
           setError('')
           const base = readComposerText()
+          const session = {
+            base,
+            chunks: [],
+            total: 0,
+            level: 0,
+            levelSmooth: 0,
+            busy: false,
+            stopping: false,
+            released: false,
+            cursor: 0,
+            committedText: '',
+            lastText: '',
+            revealedText: base,
+            targetText: base,
+            revealTimer: 0,
+            failures: 0,
+            lastVoiceAt: performance.now(),
+            voiceSinceCursor: false,
+            maxSeconds: VOICE_MAX_SECONDS,
+            maxBytes: 4 * 1024 * 1024,
+            selection: { providerId: '', language: '' },
+            sessionKey: currentSessionKey(),
+            audioContext: null,
+            source: null,
+            silentGain: null,
+            workletNode: null,
+            processor: null,
+            resampler: null,
+            usingWorklet: false,
+            flushResolve: null,
+            stream: null,
+            tickTimer: 0,
+          }
+          sessionRef.current = session
           try {
-            const catalog = await getCatalog()
-            if (catalog === null) throw new Error('语音识别不可用')
-            const stream = await navigator.mediaDevices.getUserMedia({
-              audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
-            })
-            const audioContext = new (window.AudioContext ?? window.webkitAudioContext)({ sampleRate: 16000 })
-            const source = audioContext.createMediaStreamSource(stream)
-            const processor = audioContext.createScriptProcessor(4096, 1, 1)
-            const gain = audioContext.createGain()
-            gain.gain.value = 0
-            const session = {
-              base,
-              chunks: [],
-              total: 0,
-              sampleRate: audioContext.sampleRate,
-              busy: false,
-              lastText: '',
-              revealedText: base,
-              targetText: base,
-              revealTimer: 0,
-              lastVoiceAt: performance.now(),
-              audioContext,
-              source,
-              processor,
-              gain,
-              stream,
-              timer: 0,
+            const catalog = await getCatalog(true)
+            session.selection = resolveSelection(catalog)
+            session.maxSeconds = session.selection.maxSeconds
+            session.maxBytes = session.selection.maxBytes
+            const stream = await acquireMicrophone()
+            if (sessionRef.current !== session || session.stopping) {
+              for (const track of stream.getTracks()) {
+                try {
+                  track.stop()
+                } catch {
+                  // Track already ended.
+                }
+              }
+              if (sessionRef.current === session) sessionRef.current = null
+              return
             }
-            processor.onaudioprocess = (event) => {
-              if (sessionRef.current !== session) return
-              const input = event.inputBuffer.getChannelData(0)
-              session.chunks.push(new Float32Array(input))
-              session.total += input.length
-              let energy = 0
-              for (let i = 0; i < input.length; i += 1) {
-                energy += input[i] * input[i]
-              }
-              const rms = Math.sqrt(energy / input.length)
-              if (rms > 0.018) session.lastVoiceAt = performance.now()
+            session.stream = stream
+            await startCapture(session)
+            if (sessionRef.current !== session || session.stopping) {
+              disposeCapture(session)
+              await closeAudioContext(session)
+              return
             }
-            source.connect(processor)
-            processor.connect(gain)
-            gain.connect(audioContext.destination)
-            session.timer = window.setInterval(() => {
-              if (sessionRef.current !== session) return
-              const elapsed = session.total / session.sampleRate
-              setSeconds(Math.floor(elapsed))
-              // If the user edited the draft by hand mid-recording, never
-              // overwrite their edit with the next transcript slice.
-              const currentText = readComposerText()
-              const revealed = (session.revealedText ?? '').replace(/\s+$/, '')
-              if (currentText !== '' && revealed !== '' && currentText !== revealed) {
-                stop()
-                return
-              }
-              // Hard cap so a noisy room cannot record forever.
-              if (elapsed > 60) {
-                stop()
-                return
-              }
-              // Auto-stop after ~5s without voice-level audio. If nothing at
-              // all has been recognized, stop after 6s even in a noisy room.
-              if (elapsed > 6 && session.lastText === '') {
-                stop()
-                return
-              }
-              if (elapsed > 1 && performance.now() - session.lastVoiceAt > 5000) {
-                stop()
-                return
-              }
-              transcribeLatest(session)
-            }, 300)
-            sessionRef.current = session
+            session.tickTimer = window.setInterval(() => tick(session), VOICE_TICK_MS)
             document.documentElement.setAttribute('data-dsh-realtime-voice', '1')
             setRecording(true)
-            setSeconds(0)
           } catch (reason) {
             const message = reason instanceof Error ? reason.message : String(reason)
+            if (sessionRef.current === session) sessionRef.current = null
+            session.stopping = true
+            disposeCapture(session)
+            await closeAudioContext(session)
+            setRecording(false)
             setError(message.slice(0, 80))
-            // Permission or speech failure: give the official microphone back.
+            // Permission or capture failure: give the official microphone back.
             document.documentElement.removeAttribute('data-dsh-realtime-voice')
           }
         }
 
-        const stop = async () => {
-          const session = sessionRef.current
-          if (session === null) return
-          setRecording(false)
-          window.clearInterval(session.timer)
-          try { session.processor.disconnect() } catch { /* ignore */ }
-          try { session.source.disconnect() } catch { /* ignore */ }
-          session.stream.getTracks().forEach((track) => track.stop())
-          // Wait for an in-flight chunk, then run one final full-audio pass.
-          for (let i = 0; i < 20 && session.busy; i += 1) {
-            await new Promise((resolve) => window.setTimeout(resolve, 120))
+        const tick = (session) => {
+          if (sessionRef.current !== session || session.stopping) return
+          if (document.visibilityState === 'hidden') {
+            void stop('hidden')
+            return
           }
-          try { await transcribeLatest(session) } catch { /* ignore */ }
-          if (session.lastText !== '') applyDraft(session.base + session.lastText, session, true)
-          try { await session.audioContext.close() } catch { /* ignore */ }
-          // Keep the official microphone hidden while this component stays mounted;
-          // the attribute is cleared on unmount/dispose.
-          sessionRef.current = null
-          setSeconds(0)
+          const now = performance.now()
+          const elapsed = session.total / VOICE_SAMPLE_RATE
+          // If the user edited the draft by hand mid-recording, never overwrite
+          // their edit with the next transcript slice.
+          const currentText = readComposerText().replace(/\s+$/, '')
+          const revealed = (session.revealedText ?? '').replace(/\s+$/, '')
+          if (currentText !== '' && revealed !== '' && currentText !== revealed) {
+            void stop('edited')
+            return
+          }
+          const sessionKey = currentSessionKey()
+          if (session.sessionKey !== '' && sessionKey !== '' && sessionKey !== session.sessionKey) {
+            void stop('session')
+            return
+          }
+          // Hard caps: advertised duration/byte limit and our own 60 s ceiling.
+          if (elapsed > session.maxSeconds) {
+            void stop('limit')
+            return
+          }
+          if (elapsed * 1000 > VOICE_NO_SPEECH_STOP_MS && session.committedText === '' && session.busy === false) {
+            void stop('empty')
+            return
+          }
+          if (elapsed > 1.2 && now - session.lastVoiceAt > VOICE_SILENCE_STOP_MS) {
+            void stop('silence')
+            return
+          }
+          maybeTranscribe(session)
         }
 
         React.useEffect(() => {
@@ -5097,8 +7224,91 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           })
           return () => { alive = false }
         }, [])
-        React.useEffect(() => () => disposeSession(), [])
+
+        // Hidden window / app switch: release the microphone immediately. The
+        // final transcript is still written after the device is freed.
+        React.useEffect(() => {
+          const stopHidden = () => {
+            const session = sessionRef.current
+            if (session === null) return
+            const stopCurrent = stopRef.current
+            if (typeof stopCurrent === 'function') void stopCurrent('hidden')
+          }
+          const onVisibility = () => {
+            if (document.visibilityState === 'hidden') stopHidden()
+          }
+          document.addEventListener('visibilitychange', onVisibility)
+          window.addEventListener('pagehide', stopHidden)
+          return () => {
+            document.removeEventListener('visibilitychange', onVisibility)
+            window.removeEventListener('pagehide', stopHidden)
+          }
+        }, [])
+
+        // Unmount: no final inference (the composer may belong to another
+        // session now); just release every device and timer.
+        React.useEffect(() => () => {
+          const session = sessionRef.current
+          sessionRef.current = null
+          if (session !== null) {
+            session.stopping = true
+            if (session.tickTimer !== 0) window.clearInterval(session.tickTimer)
+            releaseReveal(session)
+            disposeCapture(session)
+            void closeAudioContext(session)
+          }
+          document.documentElement.removeAttribute('data-dsh-realtime-voice')
+        }, [])
+
+        // 60 fps level meter: rAF loop writing only transform/opacity on
+        // pre-existing nodes (no layout reads, no React state per frame).
+        React.useEffect(() => {
+          if (!recording) return undefined
+          let raf = 0
+          let alive = true
+          const reduced = prefersReducedMotion()
+          const ring = ringRef.current
+          const bars = barsRef.current ?? []
+          const paint = () => {
+            if (!alive) return
+            const session = sessionRef.current
+            if (session !== null) {
+              session.levelSmooth += (session.level - session.levelSmooth) * 0.24
+            }
+            const level = session === null ? 0 : Math.max(0, Math.min(1, session.levelSmooth * 14))
+            const amp = reduced ? 0.5 : 0.2 + level * 0.8
+            const shapes = [0.55, 1, 0.75]
+            for (let i = 0; i < bars.length; i += 1) {
+              const bar = bars[i]
+              if (bar === null || bar === undefined) continue
+              const scale = Math.max(0.14, Math.min(1, amp * (shapes[i] ?? 1)))
+              bar.style.transform = 'scaleY(' + scale.toFixed(3) + ')'
+            }
+            if (ring !== null) {
+              const phase = reduced ? 0.25 : (performance.now() % 1400) / 1400
+              ring.style.opacity = ((1 - phase) * 0.5).toFixed(3)
+              ring.style.transform = 'scale(' + (1 + phase * 0.4).toFixed(3) + ')'
+            }
+            if (!reduced) raf = window.requestAnimationFrame(paint)
+          }
+          paint()
+          return () => {
+            alive = false
+            if (raf !== 0) window.cancelAnimationFrame(raf)
+            for (const bar of bars) {
+              if (bar !== null && bar !== undefined) bar.style.removeProperty('transform')
+            }
+            if (ring !== null) {
+              ring.style.removeProperty('opacity')
+              ring.style.removeProperty('transform')
+            }
+          }
+        }, [recording])
+
         const title = recording ? '点击停止并插入' : (error === '' ? '实时语音输入' : '语音输入错误：' + error)
+        const barRef = (index) => (node) => {
+          if (barsRef.current !== null) barsRef.current[index] = node
+        }
         return React.createElement(
           'span',
           { className: 'dsh-live-voice-wrap' },
@@ -5108,19 +7318,27 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
               type: 'button',
               className: LIVE_VOICE_CLASS,
               'data-recording': recording ? 'true' : 'false',
+              'aria-pressed': recording ? 'true' : 'false',
               title,
               'aria-label': recording ? '停止实时语音输入' : '实时语音输入',
-              onClick: () => { if (recording) stop(); else start() },
+              onClick: () => { if (recording) void stop('user'); else void start() },
             },
-            React.createElement('svg', { width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': 'true' },
-              React.createElement('rect', { x: 9, y: 3, width: 6, height: 12, rx: 3, fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }),
-              React.createElement('path', { d: 'M5 11a7 7 0 0 0 14 0M12 18v3', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' }),
+            React.createElement('span', { className: 'dsh-live-voice-ring', 'aria-hidden': 'true', ref: ringRef }),
+            React.createElement('span', { className: 'dsh-live-voice-icon' },
+              React.createElement('svg', { width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+                React.createElement('rect', { x: 9, y: 3, width: 6, height: 12, rx: 3, fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }),
+                React.createElement('path', { d: 'M5 11a7 7 0 0 0 14 0M12 18v3', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' }),
+              ),
+            ),
+            React.createElement('span', { className: 'dsh-live-voice-bars', 'aria-hidden': 'true' },
+              React.createElement('i', { className: 'dsh-live-voice-bar', ref: barRef(0) }),
+              React.createElement('i', { className: 'dsh-live-voice-bar', ref: barRef(1) }),
+              React.createElement('i', { className: 'dsh-live-voice-bar', ref: barRef(2) }),
             ),
             recording ? React.createElement('span', { className: 'dsh-live-voice-dot' }) : null,
           ),
         )
       }
-
       const dispose = ctx.slots.inject('conversation.input.right', () =>
         ctx.slots.register({
           name: 'conversation.input.right',
@@ -5312,7 +7530,8 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         }, 'real account balance'))
 
         // Headless session-data bridge under the composer: feeds the HUD tray,
-        // the diff badges, the review drawer and the sidebar status dots.
+        // the diff badges, the review drawer and the sidebar status dots. Its
+        // ThemeLiveProbe child samples the streamed Assistant step for tok/s.
         disposers.push(ctx.effect(() => {
           bridge.registered = true
           const dispose = ctx.slots.inject('conversation.composer.dock', () =>
@@ -5320,6 +7539,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           )
           return () => {
             bridge.registered = false
+            liveReset()
             dispose?.()
           }
         }, 'live session data bridge'))
@@ -5347,7 +7567,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
               return () => {}
             }
           }
-          const unmountBoot = unmountOf(mountBootAnimation, 'boot animation')
+          const unmountUpdate = unmountOf(mountUpdatePanel, 'update panel')
           const unmountLiveVoice = unmountOf(() => {
             let innerDispose = () => {}
             let scopeDispose = null
@@ -5370,6 +7590,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           const unmountSidebarBalance = unmountOf(mountSidebarBalance, 'sidebar balance')
           const unmountUsageModelLabels = unmountOf(() => mountUsageModelLabels(ctx), 'usage model labels')
           const unmountDiff = unmountOf(mountDiffReview, 'diff review')
+          const unmountPet = unmountOf(mountDesktopPet, 'desktop pet')
 
           // The requested look is the light variant. Follow-system users get it
           // once (persisted by the theme service); an explicit light/dark choice
@@ -5378,9 +7599,10 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           if (snapshot.preference === 'system') ctx.theme.setTheme('light')
 
           return () => {
-            unmountBoot()
+            unmountUpdate()
             unmountLiveVoice()
             unmountDiff()
+            unmountPet()
             unmountHeroMenus()
             unmountHeroCard()
             unmountUsageModelLabels()
@@ -5405,7 +7627,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
             const key = row.getAttribute('data-row-key') ?? ''
             const id = key.slice(SESSION_ID_PREFIX.length)
             const status = bridge.sessions?.statuses?.get(id) ?? null
-            const slot = row.querySelector('.hIlkoa_slot')
+            const slot = row.querySelector('[class*="_slot"]')
             const style = slot === null ? null : window.getComputedStyle(slot, '::before')
             return {
               sessionId: id,
@@ -5427,6 +7649,33 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           return rows
         }
         window.__dshClaudeThemeStatusDebug = debugStatusDots
+
+        // HUD diagnostics for issue reports: run __dshClaudeThemeHudDebug() in
+        // DevTools to see the live window, the last provider-truth step sample
+        // and the current cost state without touching the DOM.
+        const debugHud = () => {
+          const now = hudNow()
+          const snapshot = {
+            sessionId: bridge.currentSessionId,
+            running: bridge.sessions?.statuses?.get(bridge.currentSessionId)?.running ?? null,
+            liveTps: liveTps(now),
+            liveStreaming: live.streaming,
+            liveTokens: live.tokens,
+            liveCum: live.cum,
+            liveCalib: Number(live.calib.toFixed(3)),
+            liveSamples: live.samples.length,
+            lastStep: bridge.lastStep,
+            lastStepHit: bridge.lastStepHit,
+            lifetimeTps: bridge.tokensPerSecond,
+            lifetimeHit: bridge.cacheHitPercent,
+            context: bridge.context,
+            cost: { id: sessionCost.id, text: sessionCost.text, source: sessionCost.source, title: sessionCost.title },
+            trays: document.querySelectorAll('.' + TRAY_CLASS).length,
+          }
+          console.table(snapshot)
+          return snapshot
+        }
+        window.__dshClaudeThemeHudDebug = debugHud
 
 
 
@@ -5451,6 +7700,73 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           return result
         }
         window.__dshClaudeThemeFontDebug = debugFont
+
+        // Layout diagnostics for issue reports: dumps the hero/composer stack,
+        // the usage card and the sidebar account row with their boxes, so a
+        // screenshot-free report can pinpoint what overlaps what.
+        const debugLayout = () => {
+          const token = (element) =>
+            String(element.className || '')
+              .split(/\s+/)
+              .filter(Boolean)
+              .map((name) => name.replace(/^[A-Za-z0-9_-]+?_/, '_'))
+              .join(' ')
+          const box = (element) => {
+            if (element === null || element === undefined) return null
+            const rect = element.getBoundingClientRect()
+            const style = window.getComputedStyle(element)
+            return {
+              node: `${element.tagName.toLowerCase()}.${token(element)}`,
+              display: style.display,
+              position: style.position,
+              x: Math.round(rect.x),
+              y: Math.round(rect.y),
+              w: Math.round(rect.width),
+              h: Math.round(rect.height),
+            }
+          }
+          const hero = document.querySelector('[class*="_composerHero"]')
+          const card = document.querySelector(
+            '[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])',
+          )
+          const duo = document.querySelector('.duo-card')
+          const duoChain = []
+          for (let node = duo, depth = 0; node !== null && depth < 5; node = node.parentElement, depth += 1) {
+            duoChain.push(box(node))
+          }
+          const account = document.querySelector('button[data-signed-out][aria-haspopup="menu"]')
+          return {
+            viewport: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio },
+            hero: box(hero),
+            heroChildren: hero === null ? null : [...hero.children].map(box),
+            composerCard: box(card),
+            duo,
+            duoCard: box(duo),
+            duoChain,
+            account,
+            accountChildren: account === null ? null : [...account.children].map(box),
+            accountRow: account === null ? null : box(account.parentElement),
+          }
+        }
+        window.__dshClaudeThemeLayoutDebug = debugLayout
+
+        // Self-check: if the usage card and the composer card ever intersect,
+        // dump the geometry once so a bug report needs no DOM poking.
+        window.setTimeout(() => {
+          try {
+            const duo = document.querySelector('.duo-card')
+            const card = document.querySelector(
+              '[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])',
+            )
+            if (duo === null || card === null) return
+            const a = duo.getBoundingClientRect()
+            const b = card.getBoundingClientRect()
+            const overlaps = a.bottom > b.top + 2 && b.bottom > a.top + 2 && a.right > b.left && b.right > a.left
+            if (overlaps) console.warn('[dsh theme] hero/card overlap detected', debugLayout())
+          } catch (error) {
+            /* diagnostics must never break the page */
+          }
+        }, 3000)
 
 
 

@@ -70,16 +70,24 @@ npm run release
 | 工作区检查 | 有未提交改动就中止，保证包内容对应某个 commit |
 | 语法检查 | `node --check index.js client.js` |
 | 打包预览 | `npm pack --dry-run`，打印真实包体积 |
+| 版本顺序 | 拒绝发布低于 `latest` 的版本（否则 `latest` 会被推着往回走，2.2.1 就是这样插在 2.5.0 后面的） |
 | 已发布检查 | 版本已存在则跳过 publish，只校准 latest |
 | staging 检查 | 发现同版本暂存记录就 approve，绕开 409 |
 | 发布 | `npm publish --access public`，失败时翻译成具体下一步 |
 | 校准 latest | **自动把 `latest` 指向本次版本** |
 | 核对 | `npm view` 只查一次；查不到会提示“CDN 缓存，不要重复发布” |
+| 全新安装探测 | 在空目录 + 独立 cache/store 里真跑一次解析，报告新用户此刻会装到哪个版本 |
 
 只检查不发布：
 
 ```bash
 npm run release -- --dry
+```
+
+单独查看“此刻一个全新环境会装到哪个版本”（不改任何东西）：
+
+```bash
+npm run check:install   # 退出码 0=装到的正是 package.json 版本，1=被观察期挡住
 ```
 
 ## 三、上一次事故的三个坑（已修复）
@@ -108,7 +116,47 @@ npm run release -- --dry
 
 **现在的做法**：脚本发布后强制 `npm dist-tag add <pkg>@<version> latest` 并校验。
 
-## 四、出错对照表
+## 四、发布成功 ≠ 用户能装到（pnpm 观察期）
+
+这是最容易被误判成“没上传成功”的一条，**2026-10-20 就是它**。
+
+pnpm 11 默认启用供应链保护 `minimumReleaseAge`，默认等待期 **24 小时**：
+
+- 发布未满 24 小时的版本，即使 `latest` 指向它，`pnpm add <pkg>` 也**不会**选它；
+- 解析器会静默回退到「已过观察期的最新版本」，不报错、不提示；
+- `npm view` 和 `npm dist-tag ls` 都显示正确，所以从 registry 侧完全看不出问题。
+
+实测（2026-10-20，pnpm 11.28.5，全新 cache/store）：
+
+| 命令 | 解析结果 |
+|---|---|
+| `pnpm add dsh-claude-code-desktop-theme` | `2.1.5` |
+| `pnpm add dsh-claude-code-desktop-theme@latest` | `2.1.5` |
+| `pnpm add dsh-claude-code-desktop-theme@2.5.0` | `2.5.0` ✅ |
+| `pnpm add dsh-claude-code-desktop-theme --config.minimumReleaseAge=0` | `2.5.0` |
+
+当时 registry 上 `latest` 已经是 `2.5.0`。原因：`2.1.5`（10-18 10:59 UTC）已过 24h，而 `2.2.0` / `2.2.1` / `2.5.0`（10-19 15:21 / 16:45 / 16:43 UTC）都还没过。
+
+### 结论
+
+- **发布动作本身没有失败**，`latest` 也对；挡住用户的是本地 pnpm 的安全策略，发一个更新的版本同样会被挡（新版本也在观察期内）。
+- 想让用户立刻用上：**装精确版本** `dsh-claude-code-desktop-theme@2.5.0`，精确版本跳过观察期。
+- 或者等发布满 24 小时：`npm view <pkg> time.<version>` 的时间 + 24h 之后，普通安装就会拿到它。
+- 用户可以自行在 profile 的 `pnpm-workspace.yaml` 加白名单跳过等待：
+  ```yaml
+  minimumReleaseAgeExclude:
+    - dsh-claude-code-desktop-theme@2.5.0
+  ```
+
+### 现在的护栏
+
+1. `npm run release` 发布后自动跑「全新安装探测」，直接打印新用户此刻会装到哪个版本、该版本何时可普通安装、以及要给用户的精确安装命令；
+2. `npm run check:install` 可随时单独查询，退出码 `1` 表示此刻装不到 `package.json` 里的版本；
+3. 探测使用 DSH 自带的那份 pnpm（用户插件管理实际运行的那个），PATH 上的 pnpm 只是兜底。
+
+> 注意：探测在发布后立刻运行，若 registry 尚未传播，可能读到一个更旧的结果。提示里会说明——等一分钟重跑，不要因此重发版本。
+
+## 五、出错对照表
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
@@ -118,8 +166,11 @@ npm run release -- --dry
 | 发布成功但 `latest` 没变 | 漏了 dist-tag | `npm run release` 会自动补，也可手动 `npm dist-tag add <pkg>@<ver> latest` |
 | `npm view` 查不到刚发的版本 | CDN 缓存 | 等 1–2 分钟，**不要重发** |
 | `403 Forbidden` | token 无 publish 权限 | 换 Read and write 权限的 Automation token |
+| 发布成功、`latest` 也对，但全新安装装到旧版 | pnpm `minimumReleaseAge` 24h 观察期 | 第四节：让用户装 `pkg@版本`，或等满 24h |
+| `X is lower than the version latest points at` | 要发的版本低于 `latest` | `npm version patch` 抬版本；确需发布才用 `ALLOW_LOWER_VERSION=1` |
 
-## 五、遗留事项
+## 六、遗留事项
 
 - **staging 里的 2.5.1**：id `7040262d-dd7e-4b7a-b0f7-20d263875744`，与 2.5.0 功能完全相同（只有版本号和文档差异）。留着不影响新版本，想清理就 `npm stage delete 7040262d-dd7e-4b7a-b0f7-20d263875744`（需要 2FA）。
+- **版本顺序事故（2.2.1 发在 2.5.0 之后）**：`2.2.1` 的发布时间晚于 `2.5.0`，导致 `latest` 一度被推回 `2.2.1`，也曾让观察期回退选到 `2.2.0`。现在的发布脚本会拒绝低于 `latest` 的版本，不会再复现。
 - **包体积**：8 张截图从 PNG 转为 WebP（2.0 MB → 480 KB），仍随包发布，README 使用包内相对路径。压缩包从 4.8 MB 降到约 3.1 MB。注意：不要把截图换成 GitHub raw 链接——`raw.githubusercontent.com` 与 jsDelivr 在国内会直接超时，README 图片会全部裂开。

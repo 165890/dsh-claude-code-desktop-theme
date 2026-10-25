@@ -89,3 +89,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag || echo "release already exists"
+      - name: Tell users about the pnpm release-age window
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          BODY=$(gh release view "$GITHUB_REF_NAME" --json body -q .body || true)
+          {
+            printf '%s\n\n' "$BODY"
+            printf '> **还没装到这一版？** pnpm 11 默认跳过发布未满 24 小时的版本（`minimumReleaseAge`），\n'
+            printf '> 观察期内即使 `latest` 正确，全新安装也可能解析到更旧的版本。\n'
+            printf '> 想立刻使用本版，请安装精确版本：`%s@%s`。\n' "$NAME" "$VERSION"
+          } > release-notes.md
+          gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md \
+            || echo "could not append the release-age note"
