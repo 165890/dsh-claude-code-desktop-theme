@@ -27,11 +27,13 @@
 
 为补 live DOM/ctx 证据，本步曾把只读诊断块注入插件 `client.js`（锚点：`return { inject, apply }`，见附录 A），尝试三路取数：页面 HMR、手动 `Ctrl+R` 重载、窗口截图/剪贴板回收。
 
-**实测结果：三路均未让新代码生效** —— 注入后等待 >2 min 无 overlay，强制重载后仍无（截图 `4.0-plan/shots/M0-S2-desktop-app.png` 为无 overlay 的真实宿主窗口）。随后执行 `git checkout -- client.js` 回滚，`node --check` + `git status` 均通过/干净。
+**实测结果（M0-S2 当时的判断）：三路均未让新代码生效** —— 注入后等待 >2 min 无 overlay，强制重载后仍无。随后执行 `git checkout -- client.js` 回滚。
 
-推断（非定论）：`client-hmr` 只在宿主启动时采集 bundle baseline 并发布重建（`client-modules` 的 `artifactBaseline`/`rebuilt`，`client-hmr/lib/index.js:9-14,44-50`），链接式插件的 `client.js` 改动在当前 profile 下没有触发重建/重载。
+> **2026-10-25 M0-S2 之后（M0-S3）复测更正：HMR 实际可用，约 1–2s 生效。** 当时是误判：探针 overlay 设了 180s 自动移除，而有效截图发生在移除之后；另有一次抓图命中了前置视频窗口。证据：`4.0-plan/shots/M0-S3-reload-hmr.png`、`M0-S3-build-hmr.png`，流程见 `dsh-claude-code-desktop-theme/docs/RELOAD.md`。
 
-⇒ **给后续步骤的硬提醒：不能假设“改 client.js 即热更新”**（PLAN §7.5 的验证工作流需修正为“改完重启宿主，或先确认重建已发生”，否则截图会误判功能没做）。本步因此改用 §0.4 的 live Inspect + 源码取证；live DOM 自检留给 M0-S4 的 `__dshClaudeThemeAnchors()`。
+**更正后的机制**：宿主 `client-hmr` 每 500ms stat 产物（mtime/ctime/size，`dsh-client-hmr/lib/index.js:9-14,44-50`），变化即 `clientModules.rebuilt(id)` → `/plugins/events` SSE `rebuilt` → 页面 `modules.entries.reload(id, rev)`（`dsh-client-hmr/lib/client.js:262-266`）→ 插件旧实例 dispose、新实例 apply。**链接式插件的 client.js 改动会触发该链路。**
+
+⇒ **给后续步骤的硬提醒**：HMR 可用，但**验证前先确认 reload 真的发生**（看产物 mtime/临时可见标记/console），再用截图判断功能；不要用会自动消失的临时 overlay 作为唯一证据。Host 半部（`index.js`）改动不走 HMR，必须重启宿主。本步的 live DOM 自检仍留给 M0-S4 的 `__dshClaudeThemeAnchors()`。
 
 ### 0.4 live Inspect 证据（本步可复跑）
 
@@ -204,7 +206,8 @@
 1. **`ctx.subprocess.run` 不存在** → M3 的 git 路由改用 `spawn + done + readFrom`（含错误码映射，§2.5）。PLAN §5.3/M0-S2 #8、00 §305/§483 需改。
 2. **没有会话删除 RPC** → Side Chat「关闭即删除」降级为「取消 + 归档 + stopActivity」；会话会进侧栏归档区，需在 UI 明说或关闭时自动归档。PLAN §5.8 需改。
 3. **`data-signed-out` 已死**（`client.js:665,1102` 仍用）→ 余额行逻辑在当前版本不生效；M0-S4 锚点注册表必须收录并给出替代（`aria-haspopup="dialog"` 账户按钮 / `settings-general` 的 `AnXs9G_triggerRow`）。
-4. **client.js 改动不会热更新**（本步实测，§0.3）→ PLAN §7.5 的验证工作流必须改为「改完确认重建或重启宿主」；否则后续截图/回归会误判。
+4. **client.js 改动会热更新**（M0-S3 复测更正 §0.3：~1–2s 生效）→ PLAN §7.5 的 HMR 流程有效；Host 半部（`index.js`）改动仍需重启。
+
 5. **`.d.ts` 缺失** → 后续步骤不要写 `import type`；以 README + `catalog` + `runner` 目录为契约来源。
 6. **D8 前置解除**（GET ✅）→ 字体外置可在 M0-S3 直接排期。
 7. **`data-sidebar-browser-frame` 只读不可写**；`data-dockkit-*` 只在 shell 压缩包内产出（无独立包）——锚点注册表按“可用但弱契约”标注。

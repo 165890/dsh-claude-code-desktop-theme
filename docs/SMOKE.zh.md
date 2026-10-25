@@ -14,9 +14,11 @@
 ## 静态检查
 
 ```bash
-npm run check          # node --check index.js client.js
+npm run check          # build --check + node --check index.js client.js + 36 条价目 + smoke
 npm pack --dry-run     # 包内容 / 体积
 ```
+
+> `client.js` 现在是 `src/client/parts/*` 的构建产物（`npm run build`），**不要手改**；构建/拆分见 `docs/BUILD.zh.md`，重载流程见 `docs/RELOAD.md`。
 
 - [x] `npm run check` 通过
 - [x] `npm pack --dry-run`：2.5.1、23 files、packed ≈4.8 MB / unpacked ≈6.0 MB

@@ -1,0 +1,30 @@
+{
+  "output": "client.js",
+  "note": "Ordered parts, concatenated verbatim by scripts/build.mjs. Order is behavior \u2014 do not reorder or insert separators.",
+  "parts": [
+    "src/client/parts/01-module-head.js",
+    "src/client/parts/02-usage-overview.js",
+    "src/client/parts/03-tokens-and-fonts.js",
+    "src/client/parts/04-shell-css.js",
+    "src/client/parts/05-sidebar-status-dots.js",
+    "src/client/parts/06-hero-dashboard.js",
+    "src/client/parts/07-hero-menu-upward.js",
+    "src/client/parts/08-usage-model-labels.js",
+    "src/client/parts/09-sidebar-balance.js",
+    "src/client/parts/10-composer-hud-update.js",
+    "src/client/parts/11-diff-badge-review.js",
+    "src/client/parts/12-data-bridge.js",
+    "src/client/parts/13-theme-tokens.js",
+    "src/client/parts/14-effort-slider.js",
+    "src/client/parts/15-desktop-pet.js",
+    "src/client/parts/16-realtime-voice.js",
+    "src/client/parts/17-assembly.js"
+  ],
+  "m0s3Baseline": {
+    "date": "2026-10-25",
+    "note": "Mechanical split baseline (before == after). Historical record, not an enforced hash.",
+    "lines": 7784,
+    "bytes": 3877413,
+    "sha256": "2d389f0cae5844a395e702189bcd420872bcf8fb0fb1e7e45ead9852c57fd39d"
+  }
+}

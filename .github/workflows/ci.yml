@@ -12,10 +12,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Syntax check
-        run: |
-          node --check index.js
-          node --check client.js
-          for script in scripts/*.mjs; do node --check "$script"; done
+      - name: Build, syntax, pricing and smoke
+        run: npm run check
+      - name: Script syntax
+        run: for script in scripts/*.mjs; do node --check "$script"; done
       - name: Package contents
         run: npm pack --dry-run
+      - name: client.js is built from src/
+        run: |
+          npm run build
+          git diff --exit-code -- client.js || (echo "client.js was stale; run npm run build and commit the result" && exit 1)

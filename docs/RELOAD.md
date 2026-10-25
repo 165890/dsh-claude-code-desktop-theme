@@ -1,0 +1,45 @@
+# 重载与验证流程（M0-S3 实测）
+
+> 结论先行：**HMR 可用**。改 `src/client/parts/*.js` → `npm run build` → **≤10s** 页面自动重载并重新挂载插件，无需重启 DSH。
+> M0-S2 曾记录「client.js 不热更新」——那是**误判**（探针 overlay 180s 自动移除 + 截图时机 + 窗口被前置视频遮挡），本步用可见 badge 复测并纠正（见 `4.0-plan/shots/M0-S3-reload-hmr.png`、`4.0-plan/PROGRESS.md`）。
+
+## 1. 主流程（60s 内可验证）
+
+1. 改 `src/client/parts/*.js`（不要手改 `client.js`，它是构建产物）。
+2. `npm run build`（或直接 `npm run check`）。
+3. 等待 1–8 秒。机制：宿主 `client-hmr` 每 **500ms** stat 一次产物（mtime/ctime/size），变化即 `clientModules.rebuilt(id)` → `/plugins/events` SSE 推 `rebuilt` → 页面 `modules.entries.reload(id, rev)` → 插件旧实例 dispose、新实例 `apply`（epoch guard 保证不双挂）。
+4. 验证：
+   - 视觉：截图对比（Windows 可用本仓库 `scripts/capture-window.ps1`，`PrintWindow + PW_RENDERFULLCONTENT`，能截被遮挡的 Electron 窗口）；
+   - 行为：DevTools console（Ctrl+Shift+I / Ctrl+Shift+J）——Electron 桌面端可用；
+   - 自检函数：`__dshClaudeThemeFontDebug()` 等（禁用插件后应消失）。
+5. 记录：改了哪个 part、build 输出、截图、观察到的差异。
+
+## 2. 实测记录
+
+| 时间 | 方式 | 结果 | 证据 |
+|---|---|---|---|
+| 2026-10-25 22:07:04.906Z | 直接给 `client.js` 插入临时 badge（未 build） | ✅ HMR 生效，badge 在保存后 <10s 出现 | `4.0-plan/shots/M0-S3-reload-hmr.png` |
+| 2026-10-25 22:13:25（build）→ 22:13:26.559Z（badge） | **源码 → build → HMR**（临时 part 注入 badge，`npm run build` 后观察） | ✅ build 后 ~1.5s 新实例生效；删除临时 part 重建后 client.js sha 回到基线 | `4.0-plan/shots/M0-S3-build-hmr.png`、`M0-S3-restored.png` |
+
+> 60s 预算：HMR 轮询 500ms + 模块 eval，实测远小于 60s；超时再走备用路径。
+
+## 3. 备用路径（按代价从低到高）
+
+| 路径 | 做法 | 适用 |
+|---|---|---|
+| A. HMR（首选） | 保存 + `npm run build`，等自动重载 | 日常开发，实测通过 |
+| B. 渲染器重载 | 聚焦窗口后 `Ctrl+R` | 只在宿主 graph rev 已更新时有用；单独用不会重建 bundle |
+| C. 禁用/启用插件 | 插件页关闭再打开（或管理 API `plugin_manager set_plugin`） | HMR 不可用/需要干净重挂载时 |
+| D. 重启 DSH Desktop | 退出并重开应用 | 最终手段；**会结束当前会话**（会话日志持久化，重启后可继续），不要在有未保存工作的会话里随手用 |
+
+## 4. 排错
+
+- **完全没变化**：先确认 `npm run build` 真的改了 `client.js`（`npm run build -- --check`、看 mtime/size）；确认改的是 `src/client/parts/*`，不是旧的手写 `client.js`。
+- **只变一半/双份 UI**：旧实例未 dispose。检查 `window.__DSH_CLAUDE_THEME_DISPOSE__`、`__DSH_CLAUDE_THEME_EPOCH__`；必要时走路径 C 干净重挂载。
+- **HMR 一直不触发**：该 profile 可能没装 `client-hmr`（检查宿主 profile 组合）；改用 C/D。
+- **截图黑屏或拍到别的窗口**：`CopyFromScreen` 受窗口遮挡影响；用 `scripts/capture-window.ps1`（PrintWindow）而不是屏幕抓图。
+- **改了 Host 半部**（`index.js`）：**不**走 HMR，必须重启 DSH（Host 进程）。
+
+## 5. 与验收的关系
+
+本步的“行为零变化”由**字节等价**保证（拆分前后 sha256 相同，见 `docs/BUILD.zh.md`），HMR 只用于把新产物挂到运行时做一次真实冒烟；后续功能步骤再依赖 HMR 的 60s 迭代环。
