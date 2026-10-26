@@ -58,6 +58,8 @@ const required = [
   ['diagnostics: hud', '__dshClaudeThemeHudDebug'],
   ['diagnostics: pet', '__dshClaudeThemePetDebug'],
   ['diagnostics: status', '__dshClaudeThemeStatusDebug'],
+  ['diagnostics: anchors', '__dshClaudeThemeAnchors'],
+  ['diagnostics: runtime', '__dshClaudeThemeRuntime'],
 ]
 for (const [label, needle] of required) {
   client.includes(needle) ? ok(`capability present: ${label}`) : fail(`capability missing: ${label}`)
@@ -69,7 +71,7 @@ for (const route of ['usage-summary', 'update-status', 'update-apply']) {
 }
 
 // 5. no debug probes ship
-for (const probe of ['TEMP-M0S3', 'M0S3 RELOAD OK', 'm0s2Probe', '__m0s2Probe', 'M0-S2 probe']) {
+for (const probe of ['TEMP-M0S3', 'M0S3 RELOAD OK', 'TEMP-M0S4', 'm0s2Probe', '__m0s2Probe', 'M0-S2 probe']) {
   client.includes(probe) ? fail(`debug probe leaked: ${probe}`) : ok(`no probe: ${probe}`)
 }
 

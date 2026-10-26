@@ -5,7 +5,7 @@
     // from the old bottom bar (`[class*="_root"]:has([data-lexical-editor="true"]) [class*="_dock"]`, kept mounted but display:none),
     // so the legacy plugin keeps computing them while the new tray stays on a
     // single line. Injected as a sibling of `[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])`, so the card never
-    // grows; a MutationObserver re-creates it when the composer re-renders.
+    // grows; the shared runtime mutation task re-creates it when the composer re-renders.
     const TRAY_CLASS = 'dsh-composer-tray'
     const TRAY_RING_RADIUS = 4.6
     const TRAY_RING_LENGTH = 2 * Math.PI * TRAY_RING_RADIUS
@@ -455,13 +455,60 @@
         paint()
       }
 
-      const anchorFor = () => {
-        const nodes = document.querySelectorAll('div,dl,li')
-        for (const node of nodes) {
+      // O(n) scan #1 (M0-S4): this used to read the whole body's text on every
+      // probe — an entire chat transcript on the wrong page. The version line is
+      // a definition-list row, so only label-size nodes are read (64 chars
+      // each); the div-rendered fallback probes bounded plugin-page hosts only
+      // and caps its text read at 200k. No page-wide text read remains.
+      const UPDATE_PROBE_SELECTORS = ['.facts', '[data-slot="settings.plugins"]', '[role="dialog"]']
+      const UPDATE_PROBE_TEXT_LIMIT = 200000
+      const UPDATE_PROBE_NODE_LIMIT = 2000
+
+      const isVersionLabel = (text) =>
+        text.startsWith('当前版本') || /^Current version/i.test(text)
+
+      /** First candidate whose own text starts with the version label. */
+      const anchorFor = (scope) => {
+        const nodes = scope.querySelectorAll('div,dl,li')
+        const limit = Math.min(nodes.length, UPDATE_PROBE_NODE_LIMIT)
+        for (let index = 0; index < limit; index += 1) {
+          const node = nodes[index]
           if (node.childElementCount > 2) continue
-          const text = (node.textContent ?? '').trim()
+          const text = (node.textContent ?? '').slice(0, 32).trim()
           if (text.length > 24) continue
-          if (text.startsWith('当前版本') || /^Current version/i.test(text)) return node
+          if (isVersionLabel(text)) return node
+        }
+        return null
+      }
+
+      /** Anchor of the "当前版本 / Current version" row, from a bounded set. */
+      const findVersionAnchor = () => {
+        // Fast path: the host renders the line as <dt>当前版本</dt>. Only those
+        // label-size nodes are read, so a chat transcript is never touched.
+        let labels = []
+        try {
+          labels = document.querySelectorAll('dt')
+        } catch {
+          labels = []
+        }
+        const labelLimit = Math.min(labels.length, UPDATE_PROBE_NODE_LIMIT)
+        for (let index = 0; index < labelLimit; index += 1) {
+          if (isVersionLabel((labels[index].textContent ?? '').slice(0, 64).trim())) return labels[index]
+        }
+        // Div-rendered variant: bounded plugin-page hosts, then a scoped scan.
+        for (const selector of UPDATE_PROBE_SELECTORS) {
+          let scopes = []
+          try {
+            scopes = document.querySelectorAll(selector)
+          } catch {
+            continue
+          }
+          for (const scope of scopes) {
+            const text = (scope.textContent ?? '').slice(0, UPDATE_PROBE_TEXT_LIMIT)
+            if (!text.includes('当前版本') && !text.includes('Current version')) continue
+            const anchor = anchorFor(scope)
+            if (anchor !== null) return anchor
+          }
         }
         return null
       }
@@ -473,11 +520,9 @@
           render(existing)
           return
         }
-        // Cheap gate: only the plugin page renders this label, so the full
-        // scan below never runs on a chat session.
-        const body = document.body.textContent ?? ''
-        if (!body.includes('当前版本') && !body.includes('Current version')) return
-        const anchor = anchorFor()
+        // Cheap gate: only the plugin page renders this label; a chat session
+        // has no candidate, so neither the label read nor the scan runs there.
+        const anchor = findVersionAnchor()
         if (anchor === null) return
         // 目标是「当前版本」那一整行（dt + dd 的容器），这样面板作为 .facts
         // 的直接子项独占一行；若只匹配到 dt，就上提到它的行容器。
@@ -499,15 +544,17 @@
         }, 400)
       }
 
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body, { childList: true, subtree: true })
+      // M0-S4: the shared runtime owns the single body observer. The task keeps
+      // this panel's own 400ms debounce, so a React burst still folds into one
+      // scan; disposal just unregisters the task.
+      const disposeTask = runtimeOnMutation('hud-update-rows', schedule)
 
       ensure()
       void check()
 
       return () => {
         disposed = true
-        observer.disconnect()
+        disposeTask()
         if (debounce !== null) window.clearTimeout(debounce)
         const panel = document.getElementById(UPDATE_ROW_ID)
         if (panel !== null) panel.remove()
@@ -517,8 +564,9 @@
     /**
      * Mount the HUD tray below every composer card and tick the cache
      * countdown. The tray is a sibling of the card, so it never changes the
-     * card's height; the observer re-creates it after React re-renders.
-     * @returns a dispose callback that removes the trays and the timer.
+     * card's height; the shared runtime mutation task re-creates it after React
+     * re-renders.
+     * @returns a dispose callback that removes the trays and unregisters the tasks.
      */
     function mountComposerTray() {
       try {
@@ -745,14 +793,14 @@
           if (card === null || card.matches('[class*="_card"]') === false) tray.remove()
         }
       }
-      // Two cadences: a streaming Session needs a 2 Hz sample, an idle one only has
-      // to keep cost/balance honest. The timeout is re-armed per tick so the
-      // cadence can change without tearing anything down.
+      // Two cadences: a streaming Session needs a 2 Hz sample, an idle one only
+      // has to keep cost/balance honest. M0-S4: the shared ticker is the only
+      // interval — this task runs at its base rate and decides for itself
+      // whether the frame is due (no recursive timeout, no cadence teardown).
       const HUD_ACTIVE_TICK_MS = 500
       const HUD_IDLE_TICK_MS = 2000
-      let timer = 0
       let disposed = false
-      let scheduled = 0
+      let lastPaintAt = 0
 
       const pageHidden = () => {
         try {
@@ -779,57 +827,42 @@
           }
         }
       }
-      const armTicker = () => {
+      const tick = () => {
         if (disposed) return
-        if (timer !== 0) window.clearTimeout(timer)
-        if (pageHidden()) {
-          timer = 0
-          return
-        }
-        timer = window.setTimeout(() => {
-          timer = 0
-          renderNow()
-          armTicker()
-        }, sessionRunning() ? HUD_ACTIVE_TICK_MS : HUD_IDLE_TICK_MS)
+        const now = performance.now()
+        const cadence = sessionRunning() ? HUD_ACTIVE_TICK_MS : HUD_IDLE_TICK_MS
+        if (now - lastPaintAt < cadence) return
+        lastPaintAt = now
+        renderNow()
       }
       // Projection frames still paint immediately: provider truth must land at
       // once. The ticker only covers values that move between frames (live
       // tok/s decay, cost refresh, the context ring while streaming).
       const onBridgeChange = () => renderNow()
       const onVisibility = () => {
-        if (pageHidden()) {
-          if (timer !== 0) window.clearTimeout(timer)
-          timer = 0
-          return
-        }
+        if (pageHidden()) return
         renderNow()
-        armTicker()
+        lastPaintAt = performance.now()
       }
       ensure()
       renderNow()
       bridgeListeners.add(onBridgeChange)
       document.addEventListener('visibilitychange', onVisibility)
-      armTicker()
+      // The shared runtime pauses the ticker while the page is hidden and
+      // restarts it on return; the first tick then paints because `lastPaintAt`
+      // is stale.
+      const disposeTicker = runtimeEvery('hud-ticker', tick, HUD_ACTIVE_TICK_MS)
       // The body observer is mount maintenance only: React re-renders the
       // composer freely while streaming, and repainting the whole tray on every
-      // one of those mutations was the old observer's biggest cost.
-      const scheduleEnsure = () => {
-        if (scheduled !== 0) return
-        scheduled = window.requestAnimationFrame(() => {
-          scheduled = 0
-          if (disposed) return
-          ensure()
-        })
-      }
-      const observer = new MutationObserver(scheduleEnsure)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+      // one of those mutations was the old observer's biggest cost. The runtime
+      // already folds a mutation burst into one rAF, so `ensure` is the task.
+      const disposeMountTask = runtimeOnMutation('hud-tray', ensure)
       return () => {
         disposed = true
         bridgeListeners.delete(onBridgeChange)
         document.removeEventListener('visibilitychange', onVisibility)
-        if (timer !== 0) window.clearTimeout(timer)
-        observer.disconnect()
-        if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        disposeTicker()
+        disposeMountTask()
         liveReset()
         for (const tray of document.querySelectorAll('.' + TRAY_CLASS)) tray.remove()
       }

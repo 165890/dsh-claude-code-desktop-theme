@@ -34,6 +34,19 @@
         }
         window.__DSH_CLAUDE_THEME_DISPOSE__ = disposeAll
 
+        // M0-S4: one scheduler owns every body observer and periodic task this
+        // instance needs (features register tasks via runtimeOnMutation /
+        // runtimeEvery). Disposed with the instance so HMR/disable leaves none.
+        activeRuntime = createRuntimeScheduler()
+        disposers.push(() => {
+          try {
+            activeRuntime?.dispose?.()
+          } catch (error) {
+            // Teardown must never block the rest of the disposers.
+          }
+          activeRuntime = null
+        })
+
         // Mount the merged usage overview card (formerly dsh-usage-overview).
         try {
           usageOverviewPlugin.apply(ctx)
@@ -92,12 +105,11 @@
 
         // Any stale runtime notices the newer epoch within a second and retires
         // itself, releasing its intervals, observers and injected DOM.
-        disposers.push(ctx.effect(() => {
-          const timer = window.setInterval(() => {
-            if (window.__DSH_CLAUDE_THEME_EPOCH__ !== instanceEpoch) disposeAll()
-          }, 800)
-          return () => window.clearInterval(timer)
-        }, 'instance epoch guard'))
+        // M0-S4: the check rides the instance's shared ticker (disposing the
+        // scheduler clears it, so an old instance leaves no timer behind).
+        disposers.push(ctx.effect(() => runtimeEvery('epoch-guard', () => {
+          if (window.__DSH_CLAUDE_THEME_EPOCH__ !== instanceEpoch) disposeAll()
+        }, 800), 'instance epoch guard'))
 
         // Real account balance straight from the host account remote: fetch it
         // as soon as the app opens (no session / composer dock has to exist) and
@@ -139,7 +151,10 @@
             }
           }
           void refresh()
-          const poll = window.setInterval(refresh, 10000)
+          // M0-S4: the slow account poll joins the shared ticker (page-hidden
+          // pauses it together with everything else); the effect returns the
+          // task disposer so a scope teardown unregisters it.
+          const disposePoll = runtimeEvery('update-status', refresh, 10000)
           let stream
           try {
             stream = scope.remote.$stream({
@@ -165,7 +180,7 @@
           }
           return () => {
             controller.abort()
-            window.clearInterval(poll)
+            disposePoll()
             try {
               stream?.dispose?.()
             } catch {
@@ -379,7 +394,7 @@
           for (let node = duo, depth = 0; node !== null && depth < 5; node = node.parentElement, depth += 1) {
             duoChain.push(box(node))
           }
-          const account = document.querySelector('button[data-signed-out][aria-haspopup="menu"]')
+          const account = document.querySelector('[data-slot="settings.launcher"] button, button[data-signed-out]')
           return {
             viewport: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio },
             hero: box(hero),
@@ -422,6 +437,24 @@
 
 
 
+
+        // M0-S4 anchor self-check: registry-backed, available at startup and on
+        // demand (`__dshClaudeThemeAnchors()`); logs a table and stores the last
+        // report on window for bug reports.
+        window.__dshClaudeThemeAnchors = () => runAnchorSelfCheck()
+        window.__dshClaudeThemeRuntime = () => (activeRuntime === null ? null : activeRuntime.report())
+        window.setTimeout(() => {
+          try {
+            const report = runAnchorSelfCheck()
+            if (report.requiredMiss > 0) {
+              console.warn('[dsh theme] anchor self-check: required miss ' + String(report.requiredMiss) + '/' + String(report.required))
+            } else {
+              console.info('[dsh theme] anchor self-check: required ' + String(report.requiredHit) + '/' + String(report.required) + ' hit')
+            }
+          } catch (error) {
+            // Diagnostics never break the page.
+          }
+        }, 1500)
       },
     }
   },

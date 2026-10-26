@@ -163,26 +163,41 @@
         open(badge.dataset.filename || MOCK_FILENAME, badge.dataset.callId)
       }
       document.addEventListener('click', onClick, true)
-      /** Rewrite every badge from the bridge's real tool diff map. */
+      /** Rewrite one badge from the bridge's real tool diff map (idempotent). */
+      const syncBadge = (badge, card) => {
+        const callId = card.closest('[data-chat-call-id]')?.getAttribute('data-chat-call-id') ?? null
+        const tool = callId === null ? undefined : bridge.tools.get(callId)
+        if (tool === undefined || tool.lines.length === 0) {
+          if (badge.style.display !== 'none') badge.style.display = 'none'
+          return
+        }
+        badge.style.display = ''
+        badge.dataset.callId = callId
+        badge.dataset.filename = tool.path === null ? filenameFor(card) : displayPath(tool.path)
+        badge.setAttribute('title', displayPath(tool.path) + ' · +' + tool.added + ' -' + tool.removed)
+        const add = badge.querySelector('.dsh-diff-add')
+        const del = badge.querySelector('.dsh-diff-del')
+        const addText = '+' + tool.added
+        const delText = '-' + tool.removed
+        if (add !== null && add.textContent !== addText) add.textContent = addText
+        if (del !== null && del.textContent !== delText) del.textContent = delText
+      }
+      /**
+       * O(n) scan #3 (M0-S4): this used to sweep every badge in the document on
+       * a 700ms `setInterval` and run `closest('[data-tool]')` per badge. It now
+       * scans the disclosure rows only — the badge is their direct child — and
+       * is driven by the shared mutation task instead of a timer.
+       */
       const syncBadges = () => {
-        for (const badge of document.querySelectorAll('.' + DIFF_BADGE_CLASS)) {
-          const card = badge.closest('[data-tool]')
-          const callId = card === null ? null : card.closest('[data-chat-call-id]')?.getAttribute('data-chat-call-id')
-          const tool = callId === null ? undefined : bridge.tools.get(callId)
-          if (tool === undefined || tool.lines.length === 0) {
+        for (const row of document.querySelectorAll('[data-disclosure-row]')) {
+          const badge = row.querySelector(':scope > .' + DIFF_BADGE_CLASS)
+          if (badge === null) continue
+          const card = row.closest('[data-tool]')
+          if (card === null) {
             if (badge.style.display !== 'none') badge.style.display = 'none'
             continue
           }
-          badge.style.display = ''
-          badge.dataset.callId = callId
-          badge.dataset.filename = tool.path === null ? filenameFor(card) : displayPath(tool.path)
-          badge.setAttribute('title', displayPath(tool.path) + ' · +' + tool.added + ' -' + tool.removed)
-          const add = badge.querySelector('.dsh-diff-add')
-          const del = badge.querySelector('.dsh-diff-del')
-          const addText = '+' + tool.added
-          const delText = '-' + tool.removed
-          if (add !== null && add.textContent !== addText) add.textContent = addText
-          if (del !== null && del.textContent !== delText) del.textContent = delText
+          syncBadge(badge, card)
         }
       }
       const decorate = () => {
@@ -197,21 +212,12 @@
         syncBadges()
       }
       decorate()
-      const badgeTimer = window.setInterval(syncBadges, 700)
-      let scheduled = 0
-      const schedule = () => {
-        if (scheduled !== 0) return
-        scheduled = window.requestAnimationFrame(() => {
-          scheduled = 0
-          decorate()
-        })
-      }
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+      // M0-S4: the 700ms interval and the private body observer are gone. The
+      // mutation task re-inserts missing badges (idempotent) and syncs them in
+      // one pass; the drawer's click/keydown listeners stay.
+      const disposeTask = runtimeOnMutation('diff-badges', decorate)
       return () => {
-        window.clearInterval(badgeTimer)
-        observer.disconnect()
-        if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        disposeTask()
         document.removeEventListener('click', onClick, true)
         document.removeEventListener('keydown', onKey)
         closeButton.removeEventListener('click', onClose)

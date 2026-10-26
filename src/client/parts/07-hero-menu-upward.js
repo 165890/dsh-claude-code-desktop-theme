@@ -8,7 +8,6 @@
     function mountHeroMenusUpward() {
       let scheduled = 0
       const reposition = () => {
-        scheduled = 0
         const hero = document.querySelector('[class*="_composerHero"]')
         if (hero === null) return
         const triggers = [...hero.querySelectorAll(HERO_MENU_TRIGGER_SELECTOR)]
@@ -35,21 +34,23 @@
       }
       const schedule = () => {
         if (scheduled !== 0) return
-        scheduled = window.requestAnimationFrame(reposition)
+        scheduled = window.requestAnimationFrame(() => {
+          scheduled = 0
+          reposition()
+        })
       }
       schedule()
-      const timer = window.setInterval(reposition, 200)
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body ?? document.documentElement, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'aria-expanded'],
-      })
+      // M0-S4: 'hero-menu-upward' is a mutation task now (no 200ms interval);
+      // the open panel is viewport-fixed, so scroll/resize still re-anchor it.
+      const offMutation = runtimeOnMutation('hero-menu-upward', reposition)
+      window.addEventListener('scroll', schedule, { capture: true, passive: true })
+      window.addEventListener('resize', schedule)
       return () => {
-        window.clearInterval(timer)
-        observer.disconnect()
+        offMutation()
+        window.removeEventListener('scroll', schedule, { capture: true })
+        window.removeEventListener('resize', schedule)
         if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        scheduled = 0
         for (const panel of document.querySelectorAll('[data-dsh-menu-up="true"]')) {
           panel.style.removeProperty('top')
           delete panel.dataset.dshMenuUp

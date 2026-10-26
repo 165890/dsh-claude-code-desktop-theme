@@ -23,7 +23,167 @@ window.__ModuleLoader__.load({
     const PLUGIN_ID = 'dsh-claude-code-desktop-theme'
     const React = require('react')
 
-    // ── Merged usage overview card (formerly the dsh-usage-overview plugin) ──
+// ── M0-S4 runtime scheduler ─────────────────────────────────────────────
+    // One body MutationObserver + one ticker replace the per-feature observers
+    // and intervals this plugin used to create (01 audit: 10 body observers /
+    // 12 setInterval). Features register named tasks instead:
+    //
+    //   runtimeOnMutation('status-dots', apply)   // run after DOM mutations
+    //   runtimeEvery('hero-layout', apply, 800)   // coalesced into one ticker
+    //
+    // Everything pauses while the page is hidden, and `dispose()` (owned by the
+    // plugin instance) tears the observer, ticker and tasks down so HMR /
+    // disable leaves no residue.
+    const RUNTIME_TICK_MS = 200
+    // Attribute mutations are narrowed to host-owned state that features need to
+    // observe. Plugin-owned attributes/styles are deliberately excluded so a
+    // task's own writes cannot re-trigger the observer in a loop.
+    const RUNTIME_ATTRIBUTE_FILTER = [
+      'class',
+      'aria-selected',
+      'aria-expanded',
+      'aria-haspopup',
+      'data-content-phase',
+      'data-row-key',
+      'data-sidebar-collapsed',
+      'data-rightbar-collapsed',
+      'data-rightbar-fullscreen',
+      'data-dockkit-pane-active',
+      'data-dockkit-float-active',
+      'data-sidebar-right-panel',
+      'data-sidebar-right-open',
+      'data-sidebar-right-tab',
+      'data-ds-dark-theme',
+    ]
+
+    function createRuntimeScheduler() {
+      const mutationTasks = new Map()
+      const intervalTasks = new Map()
+      let observer = null
+      let frame = 0
+      let ticker = 0
+      let hidden = false
+      let disposed = false
+
+      const runMutationTasks = () => {
+        frame = 0
+        if (hidden || disposed) return
+        for (const [name, task] of mutationTasks) {
+          if (hidden || disposed) return
+          try {
+            task()
+          } catch (error) {
+            console.warn('[dsh-claude-code-desktop-theme] runtime task failed: ' + name, error)
+          }
+        }
+      }
+      const requestMutationRun = () => {
+        if (frame !== 0 || hidden || disposed) return
+        frame = window.requestAnimationFrame(runMutationTasks)
+      }
+      const runTick = () => {
+        if (hidden || disposed) return
+        const now = performance.now()
+        for (const [name, task] of intervalTasks) {
+          if (task.next > now) continue
+          task.next = now + task.ms
+          try {
+            task.fn()
+          } catch (error) {
+            console.warn('[dsh-claude-code-desktop-theme] runtime interval failed: ' + name, error)
+          }
+        }
+      }
+      const startTicker = () => {
+        if (ticker !== 0 || disposed) return
+        ticker = window.setInterval(runTick, RUNTIME_TICK_MS)
+      }
+      const stopTicker = () => {
+        if (ticker === 0) return
+        window.clearInterval(ticker)
+        ticker = 0
+      }
+      const onVisibilityChange = () => {
+        hidden = document.visibilityState === 'hidden'
+        if (hidden) {
+          stopTicker()
+          if (frame !== 0) {
+            window.cancelAnimationFrame(frame)
+            frame = 0
+          }
+        } else {
+          startTicker()
+          requestMutationRun()
+        }
+      }
+
+      observer = new MutationObserver(requestMutationRun)
+      const root = document.body ?? document.documentElement
+      if (root !== null) {
+        observer.observe(root, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true,
+          attributeFilter: RUNTIME_ATTRIBUTE_FILTER,
+        })
+      }
+      document.addEventListener('visibilitychange', onVisibilityChange)
+      startTicker()
+
+      return {
+        onMutation(name, task) {
+          mutationTasks.set(name, task)
+          requestMutationRun()
+          return () => {
+            mutationTasks.delete(name)
+          }
+        },
+        every(name, task, ms) {
+          intervalTasks.set(name, { fn: task, ms: Math.max(ms, RUNTIME_TICK_MS), next: 0 })
+          return () => {
+            intervalTasks.delete(name)
+          }
+        },
+        report() {
+          return {
+            tickMs: RUNTIME_TICK_MS,
+            mutationTasks: [...mutationTasks.keys()],
+            intervalTasks: [...intervalTasks.entries()].map(([name, task]) => ({ name, ms: task.ms })),
+            hidden,
+          }
+        },
+        dispose() {
+          if (disposed) return
+          disposed = true
+          try {
+            observer.disconnect()
+          } catch (error) {
+            // Already disconnected by a stale instance.
+          }
+          stopTicker()
+          if (frame !== 0) {
+            window.cancelAnimationFrame(frame)
+            frame = 0
+          }
+          document.removeEventListener('visibilitychange', onVisibilityChange)
+          mutationTasks.clear()
+          intervalTasks.clear()
+        },
+      }
+    }
+
+    // The active instance's scheduler. Assembly creates it before mounting and
+    // disposes it with the instance; features stay safe if they mount first.
+    let activeRuntime = null
+
+    function runtimeOnMutation(name, task) {
+      return activeRuntime === null ? () => {} : activeRuntime.onMutation(name, task)
+    }
+
+    function runtimeEvery(name, task, ms) {
+      return activeRuntime === null ? () => {} : activeRuntime.every(name, task, ms)
+    }    // ── Merged usage overview card (formerly the dsh-usage-overview plugin) ──
     // The card, its host route and its model-catalog resolution now ship with
     // the theme plugin; there is no separate usage bundle any more.
     const usageOverviewPlugin = (() => {
@@ -549,11 +709,12 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     const SHELL_CSS = [
       HERO_SERIF_FACE,
       UI_SERIF_FACE,
-      // Sidebar column fill.
-      `${LIGHT} ._2H3hWW_root{background:${SHELL.sidebarFill}}`,
-      // New Session: every stroke removed, 32px tall, 6px corners.
-      `${LIGHT} ._2H3hWW_root:not(._2H3hWW_collapsed) ._2H3hWW_newSession{border:0!important;background:${SHELL.newSessionFill}!important;height:32px;min-height:32px;padding:0 12px;border-radius:6px}`,
-      `${LIGHT} ._2H3hWW_root:not(._2H3hWW_collapsed) ._2H3hWW_newSession:hover{background:${SHELL.newSessionHover}!important}`,
+      // New Session: every stroke removed, 32px tall, 6px corners. The host's
+      // CSS-module hash changes every build (01 audit: the old sidebar hash was dead), so
+      // this targets the stable *_newSession key on the button itself — the
+      // spans inside it must keep their own geometry.
+      `${LIGHT} button[class*="_newSession"]{border:0!important;background:${SHELL.newSessionFill}!important;height:32px;min-height:32px;padding:0 12px;border-radius:6px}`,
+      `${LIGHT} button[class*="_newSession"]:hover{background:${SHELL.newSessionHover}!important}`,
       // Selected session row: cream fill plus a forced 2px terracotta rail on
       // the row's own left edge. A pseudo-element keeps it glued to the item
       // through scrolling, resizing and re-renders, with no runtime geometry.
@@ -662,7 +823,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       `.dsh-tray-right{gap:8px;flex:0 1 auto;justify-content:flex-end;overflow:hidden}`,
       `.dsh-tray-sep{color:#b4ab99;flex:none}`,
       `.dsh-sidebar-footer-balance{flex:0 1 auto!important;min-width:0!important;align-self:center!important;margin-left:auto!important;padding-left:8px!important;max-width:52%!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:right!important;font-family:${UI_FONT}!important;font-size:12px!important;line-height:16px!important;color:#7f7869!important;white-space:nowrap!important;pointer-events:none!important}`,
-      `button[data-signed-out][aria-haspopup="menu"]{overflow:hidden!important}`,
+      `[data-slot="settings.launcher"] button{overflow:hidden!important}`,
       `[data-collapsed="true"] .dsh-sidebar-footer-balance{display:none!important}`,
       `.dsh-hud-part{display:inline-flex;align-items:center;gap:6px;flex:none;min-width:0}`,
       // Numbers own a fixed-width, right-aligned slot: a value change updates
@@ -715,8 +876,6 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       `code,code *,pre,pre *,kbd,kbd *,samp,samp *,.shiki,.shiki *,.xterm,.xterm *,.monaco-editor,.monaco-editor *,.duo-tile-value,.duo-tile-value *,.duo-model-tokens,.duo-model-tokens *,.dsh-composer-tray,.dsh-composer-tray *,.dsh-diff-badge,.dsh-diff-badge *,.dsh-review-drawer,.dsh-review-drawer *{font-family:${CODE_FONT}!important}`,
       `${LIGHT}{background-color:#f5f3ee!important;color:#1d1b16!important}`,
       `${DARK}{background-color:#24221f!important;color:#ece7dd!important}`,
-      `${LIGHT} ._2H3hWW_root{background:#f5f3ee!important}`,
-      `${DARK} ._2H3hWW_root{background:#24221f!important}`,
       `${LIGHT} [class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]){background:#f5f3ee!important}`,
       `${DARK} [class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]){background:#2b2825!important}`,
       `${LIGHT} .dsh-composer-tray{color:#7f7869!important}`,
@@ -757,8 +916,9 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     // The dot itself is a CSS pseudo-element on the host's leading slot, so it
     // is not a React child and a sidebar re-render can never delete it. Only the
     // row's `data-dsh-status` attribute is written from the real bridge stores.
-    // A 500ms timer, one observer and the bridge's change listeners keep it in
-    // sync; losing `busy` switches back to the idle dot instantly.
+    // M0-S4: a 500ms runtime ticker task and a runtime mutation task (both named
+    // 'sidebar-status-dots') plus the bridge's change listeners keep it in sync;
+    // the shared scheduler owns the single body observer and ticker.
     const SESSION_ROW_SELECTOR = '[role="treeitem"][data-row-key^="session:"]'
     const SESSION_ID_PREFIX = 'session:'
 
@@ -803,14 +963,15 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         }
       }
       apply()
-      const timer = window.setInterval(apply, 500)
-      const observer = new MutationObserver(apply)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+      // M0-S4: one mutation task + one 500ms ticker task ('sidebar-status-dots')
+      // instead of a private observer and interval.
+      const offMutation = runtimeOnMutation('sidebar-status-dots', apply)
+      const offTicker = runtimeEvery('sidebar-status-dots', apply, 500)
       bridgeListeners.add(apply)
       return () => {
         bridgeListeners.delete(apply)
-        window.clearInterval(timer)
-        observer.disconnect()
+        offTicker()
+        offMutation()
         statusCache.clear()
         for (const row of document.querySelectorAll('[data-dsh-status]')) delete row.dataset.dshStatus
       }
@@ -851,7 +1012,6 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       }
 
       const apply = () => {
-        scheduled = 0
         const hero = document.querySelector('[class*="_composerHero"]')
         document.documentElement.dataset.dshHero = hero === null ? 'false' : 'true'
         const card = document.querySelector('.duo-card')
@@ -861,9 +1021,11 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         )
         const composer = composerCard === null ? null : composerCard.closest('[class*="_root"]')
         if (hero === null || card === null || row === null || composer === null) {
+          watchComposerCard(null)
           reset()
           return
         }
+        watchComposerCard(composerCard)
         const nodeChanged = card !== state.card || row !== state.row || composer !== state.composer
         if (nodeChanged) {
           reset()
@@ -957,18 +1119,40 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
       const schedule = () => {
         if (scheduled !== 0) return
-        scheduled = window.requestAnimationFrame(apply)
+        scheduled = window.requestAnimationFrame(() => {
+          scheduled = 0
+          apply()
+        })
+      }
+
+      // M0-S4: 'hero-layout' is a mutation task now (no 800ms full re-measure).
+      // The composer card can grow without any childList mutation (attachments,
+      // multi-line input), so its box is observed to re-run the same apply pass;
+      // viewport changes keep using the existing resize listener.
+      let composerResizeObserver = null
+      let observedComposerCard = null
+      const watchComposerCard = (card) => {
+        if (card === observedComposerCard) return
+        if (composerResizeObserver === null && typeof ResizeObserver === 'function') {
+          composerResizeObserver = new ResizeObserver(schedule)
+        }
+        if (composerResizeObserver !== null) {
+          if (observedComposerCard !== null) composerResizeObserver.unobserve(observedComposerCard)
+          if (card !== null) composerResizeObserver.observe(card)
+        }
+        observedComposerCard = card
       }
       schedule()
-      const timer = window.setInterval(apply, 800)
+      const offMutation = runtimeOnMutation('hero-layout', apply)
       window.addEventListener('resize', schedule)
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
       return () => {
-        window.clearInterval(timer)
+        offMutation()
         window.removeEventListener('resize', schedule)
-        observer.disconnect()
         if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        scheduled = 0
+        if (composerResizeObserver !== null) composerResizeObserver.disconnect()
+        composerResizeObserver = null
+        observedComposerCard = null
         reset()
       }
     }
@@ -983,7 +1167,6 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     function mountHeroMenusUpward() {
       let scheduled = 0
       const reposition = () => {
-        scheduled = 0
         const hero = document.querySelector('[class*="_composerHero"]')
         if (hero === null) return
         const triggers = [...hero.querySelectorAll(HERO_MENU_TRIGGER_SELECTOR)]
@@ -1010,21 +1193,23 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       }
       const schedule = () => {
         if (scheduled !== 0) return
-        scheduled = window.requestAnimationFrame(reposition)
+        scheduled = window.requestAnimationFrame(() => {
+          scheduled = 0
+          reposition()
+        })
       }
       schedule()
-      const timer = window.setInterval(reposition, 200)
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body ?? document.documentElement, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'aria-expanded'],
-      })
+      // M0-S4: 'hero-menu-upward' is a mutation task now (no 200ms interval);
+      // the open panel is viewport-fixed, so scroll/resize still re-anchor it.
+      const offMutation = runtimeOnMutation('hero-menu-upward', reposition)
+      window.addEventListener('scroll', schedule, { capture: true, passive: true })
+      window.addEventListener('resize', schedule)
       return () => {
-        window.clearInterval(timer)
-        observer.disconnect()
+        offMutation()
+        window.removeEventListener('scroll', schedule, { capture: true })
+        window.removeEventListener('resize', schedule)
         if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        scheduled = 0
         for (const panel of document.querySelectorAll('[data-dsh-menu-up="true"]')) {
           panel.style.removeProperty('top')
           delete panel.dataset.dshMenuUp
@@ -1078,15 +1263,17 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         }
       }
       void load()
-      const timer = window.setInterval(() => {
+      const poll = () => {
         if (loaded === false && modelNamesById.size === 0) void load()
         decorate()
-      }, 700)
-      const observer = new MutationObserver(decorate)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true, characterData: true })
+      }
+      // M0-S4: 'usage-model-labels' runs as one mutation task + one 700ms ticker
+      // task on the shared scheduler instead of a private observer and interval.
+      const offMutation = runtimeOnMutation('usage-model-labels', decorate)
+      const offTicker = runtimeEvery('usage-model-labels', poll, 700)
       return () => {
-        window.clearInterval(timer)
-        observer.disconnect()
+        offMutation()
+        offTicker()
       }
     }
 
@@ -1096,18 +1283,32 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     // page. Value comes from the hidden legacy bar (`余额 …`).
     const SIDEBAR_BALANCE_CLASS = 'dsh-sidebar-footer-balance'
 
-    // The host's CSS-module class names are build hashes and change between
-    // releases (`wCInkW_triggerRow` vanished in the 3.x client), so the account
-    // launcher is located by its stable semantics instead: the sidebar button
-    // that opens the account menu carries data-signed-out + aria-haspopup.
-    const ACCOUNT_TRIGGER_SELECTOR = 'button[data-signed-out][aria-haspopup="menu"]'
+    // M0-S4: locate the sidebar account launcher by host *semantics*, not by a
+    // build hash or by an attribute another plugin happens to inject. The
+    // settings.launcher slot is the host-declared seat for the sidebar account
+    // launcher (HOST-PROBE §2.9); data-signed-out is a live extra, kept as a
+    // fallback because static host code does not declare it.
+    const ACCOUNT_TRIGGER_SELECTORS = [
+      '[data-slot="settings.launcher"] button',
+      '[data-slot="settings.launcher"] [role="button"]',
+      'button[data-signed-out]',
+      'button[aria-haspopup="dialog"][aria-label*="账户"]',
+    ]
 
     function findAccountTrigger() {
-      const candidates = document.querySelectorAll(ACCOUNT_TRIGGER_SELECTOR)
-      for (const candidate of candidates) {
-        if (candidate.querySelector(':scope > span') !== null) return candidate
+      for (const selector of ACCOUNT_TRIGGER_SELECTORS) {
+        let candidates = []
+        try {
+          candidates = [...document.querySelectorAll(selector)]
+        } catch (error) {
+          continue
+        }
+        for (const candidate of candidates) {
+          if (candidate.querySelector(':scope > span') !== null) return candidate
+        }
+        if (candidates.length > 0) return candidates[0]
       }
-      return candidates.length > 0 ? candidates[0] : null
+      return null
     }
 
     function ensureSidebarBalance() {
@@ -1131,12 +1332,13 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
     function mountSidebarBalance() {
       ensureSidebarBalance()
-      const timer = window.setInterval(ensureSidebarBalance, 1000)
-      const observer = new MutationObserver(() => ensureSidebarBalance())
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+      // M0-S4: 'sidebar-balance' runs as one mutation task + one 1000ms ticker
+      // task on the shared scheduler instead of a private observer and interval.
+      const offMutation = runtimeOnMutation('sidebar-balance', ensureSidebarBalance)
+      const offTicker = runtimeEvery('sidebar-balance', ensureSidebarBalance, 1000)
       return () => {
-        window.clearInterval(timer)
-        observer.disconnect()
+        offMutation()
+        offTicker()
         for (const node of document.querySelectorAll('.' + SIDEBAR_BALANCE_CLASS)) node.remove()
       }
     }
@@ -1148,7 +1350,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     // from the old bottom bar (`[class*="_root"]:has([data-lexical-editor="true"]) [class*="_dock"]`, kept mounted but display:none),
     // so the legacy plugin keeps computing them while the new tray stays on a
     // single line. Injected as a sibling of `[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])`, so the card never
-    // grows; a MutationObserver re-creates it when the composer re-renders.
+    // grows; the shared runtime mutation task re-creates it when the composer re-renders.
     const TRAY_CLASS = 'dsh-composer-tray'
     const TRAY_RING_RADIUS = 4.6
     const TRAY_RING_LENGTH = 2 * Math.PI * TRAY_RING_RADIUS
@@ -1598,13 +1800,60 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         paint()
       }
 
-      const anchorFor = () => {
-        const nodes = document.querySelectorAll('div,dl,li')
-        for (const node of nodes) {
+      // O(n) scan #1 (M0-S4): this used to read the whole body's text on every
+      // probe — an entire chat transcript on the wrong page. The version line is
+      // a definition-list row, so only label-size nodes are read (64 chars
+      // each); the div-rendered fallback probes bounded plugin-page hosts only
+      // and caps its text read at 200k. No page-wide text read remains.
+      const UPDATE_PROBE_SELECTORS = ['.facts', '[data-slot="settings.plugins"]', '[role="dialog"]']
+      const UPDATE_PROBE_TEXT_LIMIT = 200000
+      const UPDATE_PROBE_NODE_LIMIT = 2000
+
+      const isVersionLabel = (text) =>
+        text.startsWith('当前版本') || /^Current version/i.test(text)
+
+      /** First candidate whose own text starts with the version label. */
+      const anchorFor = (scope) => {
+        const nodes = scope.querySelectorAll('div,dl,li')
+        const limit = Math.min(nodes.length, UPDATE_PROBE_NODE_LIMIT)
+        for (let index = 0; index < limit; index += 1) {
+          const node = nodes[index]
           if (node.childElementCount > 2) continue
-          const text = (node.textContent ?? '').trim()
+          const text = (node.textContent ?? '').slice(0, 32).trim()
           if (text.length > 24) continue
-          if (text.startsWith('当前版本') || /^Current version/i.test(text)) return node
+          if (isVersionLabel(text)) return node
+        }
+        return null
+      }
+
+      /** Anchor of the "当前版本 / Current version" row, from a bounded set. */
+      const findVersionAnchor = () => {
+        // Fast path: the host renders the line as <dt>当前版本</dt>. Only those
+        // label-size nodes are read, so a chat transcript is never touched.
+        let labels = []
+        try {
+          labels = document.querySelectorAll('dt')
+        } catch {
+          labels = []
+        }
+        const labelLimit = Math.min(labels.length, UPDATE_PROBE_NODE_LIMIT)
+        for (let index = 0; index < labelLimit; index += 1) {
+          if (isVersionLabel((labels[index].textContent ?? '').slice(0, 64).trim())) return labels[index]
+        }
+        // Div-rendered variant: bounded plugin-page hosts, then a scoped scan.
+        for (const selector of UPDATE_PROBE_SELECTORS) {
+          let scopes = []
+          try {
+            scopes = document.querySelectorAll(selector)
+          } catch {
+            continue
+          }
+          for (const scope of scopes) {
+            const text = (scope.textContent ?? '').slice(0, UPDATE_PROBE_TEXT_LIMIT)
+            if (!text.includes('当前版本') && !text.includes('Current version')) continue
+            const anchor = anchorFor(scope)
+            if (anchor !== null) return anchor
+          }
         }
         return null
       }
@@ -1616,11 +1865,9 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           render(existing)
           return
         }
-        // Cheap gate: only the plugin page renders this label, so the full
-        // scan below never runs on a chat session.
-        const body = document.body.textContent ?? ''
-        if (!body.includes('当前版本') && !body.includes('Current version')) return
-        const anchor = anchorFor()
+        // Cheap gate: only the plugin page renders this label; a chat session
+        // has no candidate, so neither the label read nor the scan runs there.
+        const anchor = findVersionAnchor()
         if (anchor === null) return
         // 目标是「当前版本」那一整行（dt + dd 的容器），这样面板作为 .facts
         // 的直接子项独占一行；若只匹配到 dt，就上提到它的行容器。
@@ -1642,15 +1889,17 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         }, 400)
       }
 
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body, { childList: true, subtree: true })
+      // M0-S4: the shared runtime owns the single body observer. The task keeps
+      // this panel's own 400ms debounce, so a React burst still folds into one
+      // scan; disposal just unregisters the task.
+      const disposeTask = runtimeOnMutation('hud-update-rows', schedule)
 
       ensure()
       void check()
 
       return () => {
         disposed = true
-        observer.disconnect()
+        disposeTask()
         if (debounce !== null) window.clearTimeout(debounce)
         const panel = document.getElementById(UPDATE_ROW_ID)
         if (panel !== null) panel.remove()
@@ -1660,8 +1909,9 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
     /**
      * Mount the HUD tray below every composer card and tick the cache
      * countdown. The tray is a sibling of the card, so it never changes the
-     * card's height; the observer re-creates it after React re-renders.
-     * @returns a dispose callback that removes the trays and the timer.
+     * card's height; the shared runtime mutation task re-creates it after React
+     * re-renders.
+     * @returns a dispose callback that removes the trays and unregisters the tasks.
      */
     function mountComposerTray() {
       try {
@@ -1888,14 +2138,14 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           if (card === null || card.matches('[class*="_card"]') === false) tray.remove()
         }
       }
-      // Two cadences: a streaming Session needs a 2 Hz sample, an idle one only has
-      // to keep cost/balance honest. The timeout is re-armed per tick so the
-      // cadence can change without tearing anything down.
+      // Two cadences: a streaming Session needs a 2 Hz sample, an idle one only
+      // has to keep cost/balance honest. M0-S4: the shared ticker is the only
+      // interval — this task runs at its base rate and decides for itself
+      // whether the frame is due (no recursive timeout, no cadence teardown).
       const HUD_ACTIVE_TICK_MS = 500
       const HUD_IDLE_TICK_MS = 2000
-      let timer = 0
       let disposed = false
-      let scheduled = 0
+      let lastPaintAt = 0
 
       const pageHidden = () => {
         try {
@@ -1922,57 +2172,42 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           }
         }
       }
-      const armTicker = () => {
+      const tick = () => {
         if (disposed) return
-        if (timer !== 0) window.clearTimeout(timer)
-        if (pageHidden()) {
-          timer = 0
-          return
-        }
-        timer = window.setTimeout(() => {
-          timer = 0
-          renderNow()
-          armTicker()
-        }, sessionRunning() ? HUD_ACTIVE_TICK_MS : HUD_IDLE_TICK_MS)
+        const now = performance.now()
+        const cadence = sessionRunning() ? HUD_ACTIVE_TICK_MS : HUD_IDLE_TICK_MS
+        if (now - lastPaintAt < cadence) return
+        lastPaintAt = now
+        renderNow()
       }
       // Projection frames still paint immediately: provider truth must land at
       // once. The ticker only covers values that move between frames (live
       // tok/s decay, cost refresh, the context ring while streaming).
       const onBridgeChange = () => renderNow()
       const onVisibility = () => {
-        if (pageHidden()) {
-          if (timer !== 0) window.clearTimeout(timer)
-          timer = 0
-          return
-        }
+        if (pageHidden()) return
         renderNow()
-        armTicker()
+        lastPaintAt = performance.now()
       }
       ensure()
       renderNow()
       bridgeListeners.add(onBridgeChange)
       document.addEventListener('visibilitychange', onVisibility)
-      armTicker()
+      // The shared runtime pauses the ticker while the page is hidden and
+      // restarts it on return; the first tick then paints because `lastPaintAt`
+      // is stale.
+      const disposeTicker = runtimeEvery('hud-ticker', tick, HUD_ACTIVE_TICK_MS)
       // The body observer is mount maintenance only: React re-renders the
       // composer freely while streaming, and repainting the whole tray on every
-      // one of those mutations was the old observer's biggest cost.
-      const scheduleEnsure = () => {
-        if (scheduled !== 0) return
-        scheduled = window.requestAnimationFrame(() => {
-          scheduled = 0
-          if (disposed) return
-          ensure()
-        })
-      }
-      const observer = new MutationObserver(scheduleEnsure)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+      // one of those mutations was the old observer's biggest cost. The runtime
+      // already folds a mutation burst into one rAF, so `ensure` is the task.
+      const disposeMountTask = runtimeOnMutation('hud-tray', ensure)
       return () => {
         disposed = true
         bridgeListeners.delete(onBridgeChange)
         document.removeEventListener('visibilitychange', onVisibility)
-        if (timer !== 0) window.clearTimeout(timer)
-        observer.disconnect()
-        if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        disposeTicker()
+        disposeMountTask()
         liveReset()
         for (const tray of document.querySelectorAll('.' + TRAY_CLASS)) tray.remove()
       }
@@ -2143,26 +2378,41 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         open(badge.dataset.filename || MOCK_FILENAME, badge.dataset.callId)
       }
       document.addEventListener('click', onClick, true)
-      /** Rewrite every badge from the bridge's real tool diff map. */
+      /** Rewrite one badge from the bridge's real tool diff map (idempotent). */
+      const syncBadge = (badge, card) => {
+        const callId = card.closest('[data-chat-call-id]')?.getAttribute('data-chat-call-id') ?? null
+        const tool = callId === null ? undefined : bridge.tools.get(callId)
+        if (tool === undefined || tool.lines.length === 0) {
+          if (badge.style.display !== 'none') badge.style.display = 'none'
+          return
+        }
+        badge.style.display = ''
+        badge.dataset.callId = callId
+        badge.dataset.filename = tool.path === null ? filenameFor(card) : displayPath(tool.path)
+        badge.setAttribute('title', displayPath(tool.path) + ' · +' + tool.added + ' -' + tool.removed)
+        const add = badge.querySelector('.dsh-diff-add')
+        const del = badge.querySelector('.dsh-diff-del')
+        const addText = '+' + tool.added
+        const delText = '-' + tool.removed
+        if (add !== null && add.textContent !== addText) add.textContent = addText
+        if (del !== null && del.textContent !== delText) del.textContent = delText
+      }
+      /**
+       * O(n) scan #3 (M0-S4): this used to sweep every badge in the document on
+       * a 700ms `setInterval` and run `closest('[data-tool]')` per badge. It now
+       * scans the disclosure rows only — the badge is their direct child — and
+       * is driven by the shared mutation task instead of a timer.
+       */
       const syncBadges = () => {
-        for (const badge of document.querySelectorAll('.' + DIFF_BADGE_CLASS)) {
-          const card = badge.closest('[data-tool]')
-          const callId = card === null ? null : card.closest('[data-chat-call-id]')?.getAttribute('data-chat-call-id')
-          const tool = callId === null ? undefined : bridge.tools.get(callId)
-          if (tool === undefined || tool.lines.length === 0) {
+        for (const row of document.querySelectorAll('[data-disclosure-row]')) {
+          const badge = row.querySelector(':scope > .' + DIFF_BADGE_CLASS)
+          if (badge === null) continue
+          const card = row.closest('[data-tool]')
+          if (card === null) {
             if (badge.style.display !== 'none') badge.style.display = 'none'
             continue
           }
-          badge.style.display = ''
-          badge.dataset.callId = callId
-          badge.dataset.filename = tool.path === null ? filenameFor(card) : displayPath(tool.path)
-          badge.setAttribute('title', displayPath(tool.path) + ' · +' + tool.added + ' -' + tool.removed)
-          const add = badge.querySelector('.dsh-diff-add')
-          const del = badge.querySelector('.dsh-diff-del')
-          const addText = '+' + tool.added
-          const delText = '-' + tool.removed
-          if (add !== null && add.textContent !== addText) add.textContent = addText
-          if (del !== null && del.textContent !== delText) del.textContent = delText
+          syncBadge(badge, card)
         }
       }
       const decorate = () => {
@@ -2177,21 +2427,12 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         syncBadges()
       }
       decorate()
-      const badgeTimer = window.setInterval(syncBadges, 700)
-      let scheduled = 0
-      const schedule = () => {
-        if (scheduled !== 0) return
-        scheduled = window.requestAnimationFrame(() => {
-          scheduled = 0
-          decorate()
-        })
-      }
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+      // M0-S4: the 700ms interval and the private body observer are gone. The
+      // mutation task re-inserts missing badges (idempotent) and syncs them in
+      // one pass; the drawer's click/keydown listeners stay.
+      const disposeTask = runtimeOnMutation('diff-badges', decorate)
       return () => {
-        window.clearInterval(badgeTimer)
-        observer.disconnect()
-        if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        disposeTask()
         document.removeEventListener('click', onClick, true)
         document.removeEventListener('keydown', onKey)
         closeButton.removeEventListener('click', onClose)
@@ -4438,8 +4679,8 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       var current = null;
       var seat = null; // 收起态那一行里的档位文字（菜单没打开时也要着色）
       var seatColor = ""; // 组件给的当前颜色：重新抓到元素时立刻补上，不必等下一次渲染
-      var observer = null;
-      var timer = null;
+      var disposeMutation = null;
+      var disposeTicker = null;
       var disposed = false;
       var seatLabels = options.seatLabels; // () => string[]，全部已知档位名
 
@@ -4558,18 +4799,15 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
       function start() {
         scan();
-        var MO = win && (win.MutationObserver || (typeof MutationObserver === "function" ? MutationObserver : null));
-        if (typeof MO === "function") {
-          try {
-            observer = new MO(function () { scan(); });
-            observer.observe(doc.body || doc.documentElement, { childList: true, subtree: true });
-            return;
-          } catch (error) {
-            observer = null;
-          }
+        // M0-S4: 共享调度器接管 body 观察与周期任务。scan 是幂等的，所以
+        // 「每 400ms 兜底轮询」并进唯一 ticker 即可；不再自建 MO / setInterval。
+        // vendored 代码保持自包含：运行时帮助函数不存在时静默降级（预览/测试环境）。
+        if (typeof runtimeOnMutation === "function") {
+          disposeMutation = runtimeOnMutation("effort-slider", scan);
         }
-        // 没有 MutationObserver 时退化成低频轮询；反正每轮都很便宜。
-        if (win && typeof win.setInterval === "function") timer = win.setInterval(scan, 400);
+        if (typeof runtimeEvery === "function") {
+          disposeTicker = runtimeEvery("effort-slider", scan, 400);
+        }
       }
 
       return {
@@ -4584,13 +4822,13 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         },
         dispose: function () {
           disposed = true;
-          if (observer !== null) {
-            try { observer.disconnect(); } catch (error) { /* 忽略 */ }
-            observer = null;
+          if (disposeMutation !== null) {
+            try { disposeMutation(); } catch (error) { /* 忽略 */ }
+            disposeMutation = null;
           }
-          if (timer !== null) {
-            try { win.clearInterval(timer); } catch (error) { /* 忽略 */ }
-            timer = null;
+          if (disposeTicker !== null) {
+            try { disposeTicker(); } catch (error) { /* 忽略 */ }
+            disposeTicker = null;
           }
           releaseSeat();
           detach();
@@ -4774,6 +5012,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
        * 档位是**后到**的（目录 load 完才有 efforts）。那时 DOM 没有任何变化，
        * MutationObserver 不会响，所以这里在档位数变化时主动重扫一次 ——
        * 少了这一句，"目录晚到"会让滑条永远挂不上去（起步期抖动变永久失效）。
+       * （M0-S4 之后 400ms ticker 也会兜底，但这句保证即时挂上，不等下一拍。）
        */
       React.useEffect(function () {
         if (bridgeRef.current !== null) bridgeRef.current.scan();
@@ -5802,7 +6041,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       let state = 'idle'
       let cooldown = false
       let hiddenFlag = false
-      let breathTimer = 0
+      let disposeBreath = null
       let blinkTimer = 0
       let blinkRestoreTimer = 0
       let reactionTimer = 0
@@ -5810,8 +6049,8 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       let ensureTimer = 0
       let lastSendAt = 0
       let pointerStart = null
-      let mountObserver = null
-      let themeObserver = null
+      let disposeMountTask = null
+      let disposeThemeTask = null
       let resizeObserver = null
       let intersectionObserver = null
 
@@ -5869,18 +6108,25 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       const idleFrame = () => (breathPhase === 0 ? 'idle' : 'idle_lo')
 
       const stopBreath = () => {
-        if (breathTimer !== 0) {
-          window.clearInterval(breathTimer)
-          breathTimer = 0
+        if (disposeBreath !== null) {
+          disposeBreath()
+          disposeBreath = null
         }
       }
+      /**
+       * 呼吸帧并入唯一 ticker。原间隔 1600ms 远大于 200ms 基频，观感不变，
+       * 因此不需要降帧。ticker 注册后会立刻到期一次，这里用 startedAt 挡掉，
+       * 让第一次呼吸翻转仍在 PET_BREATH_MS 之后发生。
+       */
       const startBreath = () => {
         stopBreath()
         if (disposed || shell === null || pageHidden() || reducedMotion()) return
         if (state === 'happy' || state === 'dash') return
-        breathTimer = window.setInterval(() => {
+        const startedAt = performance.now()
+        disposeBreath = runtimeEvery('pet-breath', () => {
           if (disposed || pageHidden()) return
           if (state === 'happy' || state === 'dash') return
+          if (performance.now() - startedAt < PET_BREATH_MS) return
           breathPhase = breathPhase === 0 ? 1 : 0
           setFrame(idleFrame())
         }, PET_BREATH_MS)
@@ -6338,21 +6584,14 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       window.__dshClaudeThemePetDebug = debug
 
       ensureMounted()
-      try {
-        mountObserver = new MutationObserver(scheduleEnsure)
-        mountObserver.observe(background(), { childList: true, subtree: true })
-      } catch {
-        mountObserver = null
-      }
-      try {
-        themeObserver = new MutationObserver(() => {
-          if (disposed) return
-          applySheet()
-        })
-        themeObserver.observe(background(), { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
-      } catch {
-        themeObserver = null
-      }
+      // M0-S4: both body observers fold into the shared one. `pet-mount` keeps
+      // the 300ms debounce in `scheduleEnsure`; `pet-theme` watches the host
+      // `data-ds-dark-theme` attribute, which the shared observer filters for.
+      disposeMountTask = runtimeOnMutation('pet-mount', scheduleEnsure)
+      disposeThemeTask = runtimeOnMutation('pet-theme', () => {
+        if (disposed) return
+        applySheet()
+      })
       document.addEventListener('visibilitychange', onVisibility)
       document.addEventListener('keydown', onKeyDown, { passive: true })
       document.addEventListener('pointerup', onSendPointerUp, true)
@@ -6371,8 +6610,14 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
         }
         removeShell()
         removeRestore()
-        if (mountObserver !== null) mountObserver.disconnect()
-        if (themeObserver !== null) themeObserver.disconnect()
+        if (disposeMountTask !== null) {
+          disposeMountTask()
+          disposeMountTask = null
+        }
+        if (disposeThemeTask !== null) {
+          disposeThemeTask()
+          disposeThemeTask = null
+        }
         document.removeEventListener('visibilitychange', onVisibility)
         document.removeEventListener('keydown', onKeyDown)
         document.removeEventListener('pointerup', onSendPointerUp, true)
@@ -7353,7 +7598,266 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
       }
     }
 
-    return {
+// ── M0-S4 central anchor registry + self-check ──────────────────────────
+    // Every host seam this plugin depends on is declared once, with a required /
+    // optional / fallback level. `__dshClaudeThemeAnchors()` reports hit, miss
+    // and degraded-fallback counts for the running client, so a host upgrade
+    // that renames a class or drops an attribute becomes a visible number
+    // instead of a silently dead feature (01 audit: 5 dead hash selectors).
+    //
+    // Evidence for the host side lives in docs/HOST-PROBE.md (§2.9/§2.10).
+    const SIDEBAR_RIGHT_ATTRS = [
+      'session',
+      'panel',
+      'open',
+      'tab',
+      'occurrence',
+      'mode',
+      'toggle',
+      'guide',
+      'guide-entry',
+      'expand',
+      'unavailable',
+    ]
+
+    // data-dockkit-* produced by the shell bundle (dsh-web-frontend index-*.js).
+    const DOCKKIT_ATTRS = [
+      'add-tab',
+      'caret',
+      'cell',
+      'column',
+      'content',
+      'divider',
+      'dock-scrim',
+      'dock-zone',
+      'drop-active',
+      'drop-zones',
+      'empty',
+      'float',
+      'float-active',
+      'float-close',
+      'float-dock',
+      'float-grip',
+      'float-resize',
+      'float-title',
+      'host',
+      'menu-close',
+      'pane',
+      'pane-active',
+      'split',
+      'split-blocked',
+      'split-button',
+      'strip',
+      'strip-chrome',
+      'strip-fill',
+      'strip-tabs',
+      'surface',
+      'tab',
+      'tab-close',
+      'tab-menu',
+      'tab-quiet',
+      'tab-title',
+    ]
+
+    // Cross-hash references the plugin still uses: a CSS-module *key* substring,
+    // never a build hash. Required ones gate the composer/hero/usage surfaces.
+    const CSS_KEY_ANCHORS = [
+      { key: 'card', level: 'required' },
+      { key: 'composerHero', level: 'optional' },
+      { key: 'heroWorkspaceRow', level: 'optional' },
+      { key: 'cardWorkspaceTrigger', level: 'optional' },
+      { key: 'sessionRow', level: 'required' },
+      { key: 'treeitem', level: 'optional' },
+      { key: 'triggerEffort', level: 'optional' },
+      { key: 'triggerAnchor', level: 'optional' },
+      { key: 'workspace', level: 'optional' },
+      { key: 'headline', level: 'optional' },
+      { key: 'newSession', level: 'required' },
+    ]
+
+    // Live discovery (M0-S4, 2026-10-26): the sidebar account launcher is the
+    // host-declared `settings.launcher` slot seat; it carries no aria-haspopup in
+    // this build, while data-signed-out exists only as an extra. Order matters.
+    const ACCOUNT_TRIGGER_ANCHORS = [
+      '[data-slot="settings.launcher"] button',
+      '[data-slot="settings.launcher"] [role="button"]',
+      'button[data-signed-out]',
+      'button[aria-haspopup="dialog"][aria-label*="账户"]',
+    ]
+
+    const ANCHOR_REGISTRY = (() => {
+      const entries = []
+      const add = (entry) => entries.push(entry)
+
+      // Declared slot seams (registered by this plugin; DOM evidence below).
+      add({ id: 'slot.usage-card', kind: 'slot', target: 'conversation.input.dock', level: 'required', note: '用量概览卡' })
+      add({ id: 'slot.data-bridge', kind: 'slot', target: 'conversation.composer.dock', level: 'required', note: '实时数据桥（headless）' })
+      add({ id: 'slot.effort-slider', kind: 'slot', target: 'conversation.input.right', level: 'required', note: '推理强度滑条' })
+      add({ id: 'slot.live-voice', kind: 'slot', target: 'conversation.input.right', level: 'required', note: '实时语音' })
+
+      // Conversation frame (M1-S5 depends on the scroll/phase pair).
+      add({ id: 'dom.conversation.chat', kind: 'dom', selector: '[data-conversation-region="chat"]', level: 'required', note: '主会话区域' })
+      add({ id: 'dom.conversation.composer', kind: 'dom', selector: '[data-conversation-region="composer"]', level: 'required', note: 'composer 座位' })
+      add({ id: 'dom.conversation.scroll', kind: 'dom', selector: '[data-conversation-scroll]', level: 'required', note: '滚动容器（M1-S5 首选锚点）' })
+      add({ id: 'dom.conversation.phase', kind: 'dom', selector: '[data-content-phase]', level: 'required', note: 'hero/active/settling' })
+      add({ id: 'dom.composer.seat', kind: 'dom', selector: '[data-composer-seat]', level: 'required' })
+      add({ id: 'dom.composer.editor', kind: 'dom', selector: '[data-lexical-editor="true"]', level: 'required' })
+      add({ id: 'dom.composer.card', kind: 'dom', selector: '[class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"])', level: 'required', fallback: '[data-lexical-editor="true"]', note: 'composer 卡片（跨哈希子串）' })
+
+      // Sidebar frame.
+      add({ id: 'dom.sidebar.rows', kind: 'dom', selector: '[data-row-key^="session:"]', level: 'required', note: '会话行（data-row-key）' })
+      add({ id: 'dom.sidebar.treeitem', kind: 'dom', selector: '[role="treeitem"][data-row-key^="session:"]', level: 'required' })
+      add({ id: 'dom.sidebar.collapsed', kind: 'dom', selector: '[data-sidebar-collapsed="true"]', level: 'optional', note: '仅折叠时渲染（false 属性缺省）' })
+      add({ id: 'dom.account.trigger', kind: 'dom', selector: ACCOUNT_TRIGGER_ANCHORS[0], level: 'required', fallback: ACCOUNT_TRIGGER_ANCHORS[2], note: '账户按钮（settings.launcher 槽位；data-signed-out 仅作后备）' })
+
+      // Frame columns / shell seats.
+      add({ id: 'dom.frame.rightbar-col', kind: 'dom', selector: '[data-rightbar-col]', level: 'required' })
+      add({ id: 'dom.shell.bottom', kind: 'dom', selector: '[data-shell-bottom]', level: 'required' })
+      add({ id: 'dom.shell.overlay', kind: 'dom', selector: '[data-shell-overlay]', level: 'required' })
+      add({ id: 'dom.shell.leading', kind: 'dom', selector: '[data-shell-leading]', level: 'optional', note: '无 leading 内容时不渲染（本 profile 实测 0）' })
+
+      // Optional conversation/tool/diff surfaces (present only in some states).
+      add({ id: 'dom.hero.root', kind: 'dom', selector: '[class*="_composerHero"]', level: 'optional', note: '首页 hero' })
+      add({ id: 'dom.tool.call-id', kind: 'dom', selector: '[data-chat-call-id]', level: 'optional', note: '工具调用卡（diff 微标依赖）' })
+      add({ id: 'dom.tool.anchor-key', kind: 'dom', selector: '[data-chat-anchor-key]', level: 'optional' })
+      add({ id: 'dom.diff.disclosure', kind: 'dom', selector: '[data-disclosure-row]', level: 'optional', note: 'Diff 微标插入点' })
+      add({ id: 'dom.conversation.header', kind: 'dom', selector: '[data-conversation-header-leading], [data-conversation-header-corner]', level: 'optional', note: '会话头扩展位（M1-S2 用）' })
+      add({ id: 'dom.theme.dark', kind: 'dom', selector: 'body[data-ds-dark-theme]', level: 'optional' })
+      add({ id: 'dom.sidebar.right.toggle', kind: 'dom', selector: '[data-sidebar-right-toggle]', level: 'optional' })
+      for (const name of SIDEBAR_RIGHT_ATTRS) {
+        add({ id: 'dom.sidebarRight.' + name, kind: 'dom', selector: '[data-sidebar-right-' + name + ']', level: 'optional', note: '右栏状态属性' })
+      }
+      add({
+        id: 'dom.dockkit.family',
+        kind: 'family',
+        selectors: DOCKKIT_ATTRS.map((name) => '[data-dockkit-' + name + ']'),
+        level: 'optional',
+        note: '右栏 Dock 家族（关闭时多为 0，属正常）',
+      })
+
+      // Cross-hash key anchors.
+      for (const { key, level } of CSS_KEY_ANCHORS) {
+        add({ id: 'css.' + key, kind: 'dom', selector: '[class*="_' + key + '"]', level, note: 'CSS module 键（跨构建哈希）' })
+      }
+      return entries
+    })()
+
+    function matchCount(selector) {
+      try {
+        return document.querySelectorAll(selector).length
+      } catch (error) {
+        return -1
+      }
+    }
+
+    function evaluateAnchors() {
+      const rows = []
+      let required = 0
+      let requiredHit = 0
+      let optionalHit = 0
+      let optionalMiss = 0
+      let fallbackCount = 0
+      const missesRequired = []
+      const fallbacks = []
+      const slots = []
+
+      for (const entry of ANCHOR_REGISTRY) {
+        if (entry.kind === 'slot') {
+          slots.push({ id: entry.id, target: entry.target, status: 'declared', level: entry.level })
+          rows.push({ entry, status: 'declared', hits: '—' })
+          continue
+        }
+        let hits = 0
+        if (entry.kind === 'family') {
+          hits = entry.selectors.filter((selector) => matchCount(selector) > 0).length
+          rows.push({ entry, status: hits > 0 ? 'hit' : 'optional-miss', hits: hits + '/' + entry.selectors.length })
+          if (hits > 0) optionalHit += 1
+          else optionalMiss += 1
+          continue
+        }
+        hits = matchCount(entry.selector)
+        let status = hits > 0 ? 'hit' : 'miss'
+        let fallbackHits = null
+        if (hits <= 0 && entry.fallback !== undefined) {
+          fallbackHits = matchCount(entry.fallback)
+          if (fallbackHits > 0) status = 'fallback'
+        }
+        if (entry.level === 'required') {
+          required += 1
+          if (status === 'hit') requiredHit += 1
+        } else if (entry.level === 'optional') {
+          if (status === 'hit') optionalHit += 1
+          else optionalMiss += 1
+        }
+        if (status === 'fallback') {
+          fallbackCount += 1
+          fallbacks.push({ id: entry.id, fallback: entry.fallback, fallbackHits })
+        }
+        if (entry.level === 'required' && status !== 'hit') {
+          missesRequired.push({ id: entry.id, selector: entry.selector, hits, status })
+        }
+        rows.push({ entry, status, hits, fallbackHits })
+      }
+
+      return {
+        time: new Date().toISOString(),
+        url: String(location.href).replace(/[?&]token=[^&]*/g, '?token=<redacted>'),
+        viewport: { w: window.innerWidth, h: window.innerHeight },
+        runtime: activeRuntime === null ? null : activeRuntime.report(),
+        required,
+        requiredHit,
+        requiredMiss: required - requiredHit,
+        optionalHit,
+        optionalMiss,
+        fallback: fallbackCount,
+        slots,
+        missesRequired,
+        fallbacks,
+        rows,
+      }
+    }
+
+    function formatAnchorReport(report) {
+      const lines = []
+      lines.push('anchors ' + report.requiredHit + '/' + report.required + ' required hit' +
+        (report.requiredMiss > 0 ? ' · MISS ' + report.requiredMiss : ' · all required ok'))
+      lines.push('optional ' + report.optionalHit + ' hit / ' + report.optionalMiss + ' miss · fallback ' + report.fallback +
+        ' · slots declared ' + report.slots.length)
+      if (report.runtime !== null) {
+        lines.push('runtime: 1 observer / ' + report.runtime.intervalTasks.length + ' intervals (' + report.runtime.tickMs + 'ms tick)' +
+          (report.runtime.hidden ? ' · paused(hidden)' : ''))
+        lines.push('  mutation tasks: ' + report.runtime.mutationTasks.join(', '))
+        lines.push('  interval tasks: ' + report.runtime.intervalTasks.map((task) => task.name + '@' + task.ms + 'ms').join(', '))
+      } else {
+        lines.push('runtime: inactive')
+      }
+      if (report.fallbacks.length > 0) {
+        lines.push('fallbacks: ' + report.fallbacks.map((item) => item.id + ' → ' + item.fallback).join(' | '))
+      }
+      if (report.missesRequired.length > 0) {
+        lines.push('required miss:')
+        for (const miss of report.missesRequired) lines.push('  ' + miss.id + '  ' + miss.selector + '  hits=' + miss.hits)
+      }
+      return lines
+    }
+
+    function runAnchorSelfCheck() {
+      const report = evaluateAnchors()
+      try {
+        window.__dshClaudeThemeAnchorsReport = report
+        console.table(report.rows.map((row) => ({
+          anchor: row.entry.id,
+          kind: row.entry.kind,
+          level: row.entry.level,
+          status: row.status,
+          hits: row.hits,
+        })))
+        for (const line of formatAnchorReport(report)) console.info('[dsh theme anchors] ' + line)
+      } catch (error) {
+        // Diagnostics must never break the page.
+      }
+      return report
+    }    return {
       inject: ['theme', 'slots', 'locale', 'remote'],
       apply(ctx) {
         // Epoch guard: every new instance bumps a global epoch. Older instances
@@ -7388,6 +7892,19 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           if (window.__dshClaudeThemeFontDebug === debugFont) window.__dshClaudeThemeFontDebug = undefined
         }
         window.__DSH_CLAUDE_THEME_DISPOSE__ = disposeAll
+
+        // M0-S4: one scheduler owns every body observer and periodic task this
+        // instance needs (features register tasks via runtimeOnMutation /
+        // runtimeEvery). Disposed with the instance so HMR/disable leaves none.
+        activeRuntime = createRuntimeScheduler()
+        disposers.push(() => {
+          try {
+            activeRuntime?.dispose?.()
+          } catch (error) {
+            // Teardown must never block the rest of the disposers.
+          }
+          activeRuntime = null
+        })
 
         // Mount the merged usage overview card (formerly dsh-usage-overview).
         try {
@@ -7447,12 +7964,11 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
         // Any stale runtime notices the newer epoch within a second and retires
         // itself, releasing its intervals, observers and injected DOM.
-        disposers.push(ctx.effect(() => {
-          const timer = window.setInterval(() => {
-            if (window.__DSH_CLAUDE_THEME_EPOCH__ !== instanceEpoch) disposeAll()
-          }, 800)
-          return () => window.clearInterval(timer)
-        }, 'instance epoch guard'))
+        // M0-S4: the check rides the instance's shared ticker (disposing the
+        // scheduler clears it, so an old instance leaves no timer behind).
+        disposers.push(ctx.effect(() => runtimeEvery('epoch-guard', () => {
+          if (window.__DSH_CLAUDE_THEME_EPOCH__ !== instanceEpoch) disposeAll()
+        }, 800), 'instance epoch guard'))
 
         // Real account balance straight from the host account remote: fetch it
         // as soon as the app opens (no session / composer dock has to exist) and
@@ -7494,7 +8010,10 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
             }
           }
           void refresh()
-          const poll = window.setInterval(refresh, 10000)
+          // M0-S4: the slow account poll joins the shared ticker (page-hidden
+          // pauses it together with everything else); the effect returns the
+          // task disposer so a scope teardown unregisters it.
+          const disposePoll = runtimeEvery('update-status', refresh, 10000)
           let stream
           try {
             stream = scope.remote.$stream({
@@ -7520,7 +8039,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           }
           return () => {
             controller.abort()
-            window.clearInterval(poll)
+            disposePoll()
             try {
               stream?.dispose?.()
             } catch {
@@ -7734,7 +8253,7 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
           for (let node = duo, depth = 0; node !== null && depth < 5; node = node.parentElement, depth += 1) {
             duoChain.push(box(node))
           }
-          const account = document.querySelector('button[data-signed-out][aria-haspopup="menu"]')
+          const account = document.querySelector('[data-slot="settings.launcher"] button, button[data-signed-out]')
           return {
             viewport: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio },
             hero: box(hero),
@@ -7777,6 +8296,24 @@ body[data-ds-dark-theme] .duo-card{--uo-bg:#2b2825;--uo-ink:#f0ede4;--uo-muted:#
 
 
 
+
+        // M0-S4 anchor self-check: registry-backed, available at startup and on
+        // demand (`__dshClaudeThemeAnchors()`); logs a table and stores the last
+        // report on window for bug reports.
+        window.__dshClaudeThemeAnchors = () => runAnchorSelfCheck()
+        window.__dshClaudeThemeRuntime = () => (activeRuntime === null ? null : activeRuntime.report())
+        window.setTimeout(() => {
+          try {
+            const report = runAnchorSelfCheck()
+            if (report.requiredMiss > 0) {
+              console.warn('[dsh theme] anchor self-check: required miss ' + String(report.requiredMiss) + '/' + String(report.required))
+            } else {
+              console.info('[dsh theme] anchor self-check: required ' + String(report.requiredHit) + '/' + String(report.required) + ' hit')
+            }
+          } catch (error) {
+            // Diagnostics never break the page.
+          }
+        }, 1500)
       },
     }
   },

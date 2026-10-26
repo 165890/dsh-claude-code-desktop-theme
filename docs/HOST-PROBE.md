@@ -174,6 +174,8 @@
 
 **结论**：`data-conversation-region` 是真实锚点，但它是宿主内部 JS 钩子（无 README/类型、无 CSS 依赖），稳定性弱于 `data-conversation-scroll` + `data-content-phase`；M1-S5 应以后者为准（§3.1）。
 
+> **M0-S4 live 复核更正（2026-10-26）**：`data-signed-out` 在当前 live DOM 存在 1 个（`data-signed-out="false"`，账户按钮，`aria-haspopup="menu"`），但静态宿主包 0 命中 ⇒ 由其他插件/壳层注入，**不是宿主契约**，不可依赖；真实语义锚点是 `settings.launcher` slot（`[data-slot="settings.launcher"] button`）。`data-sidebar-collapsed` 与 `data-shell-leading` 是**按需渲染**（折叠 / 有 leading 内容时才出现），非常驻锚点，自检里降为 optional。其余锚点与本节一致。详见 `docs/ANCHORS.zh.md`。
+
 ### 2.10 5 条死哈希的真实类名（#10）
 
 `_2H3hWW_` 全 `B` **0 命中**（确认死亡）。当前构建的侧栏模块 `SidebarRoot.module.css` 前缀是 **`wtg9ga_`**（`S:114-164`）：

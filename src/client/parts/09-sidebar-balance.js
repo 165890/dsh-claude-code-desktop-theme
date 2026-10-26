@@ -4,18 +4,32 @@
     // page. Value comes from the hidden legacy bar (`余额 …`).
     const SIDEBAR_BALANCE_CLASS = 'dsh-sidebar-footer-balance'
 
-    // The host's CSS-module class names are build hashes and change between
-    // releases (`wCInkW_triggerRow` vanished in the 3.x client), so the account
-    // launcher is located by its stable semantics instead: the sidebar button
-    // that opens the account menu carries data-signed-out + aria-haspopup.
-    const ACCOUNT_TRIGGER_SELECTOR = 'button[data-signed-out][aria-haspopup="menu"]'
+    // M0-S4: locate the sidebar account launcher by host *semantics*, not by a
+    // build hash or by an attribute another plugin happens to inject. The
+    // settings.launcher slot is the host-declared seat for the sidebar account
+    // launcher (HOST-PROBE §2.9); data-signed-out is a live extra, kept as a
+    // fallback because static host code does not declare it.
+    const ACCOUNT_TRIGGER_SELECTORS = [
+      '[data-slot="settings.launcher"] button',
+      '[data-slot="settings.launcher"] [role="button"]',
+      'button[data-signed-out]',
+      'button[aria-haspopup="dialog"][aria-label*="账户"]',
+    ]
 
     function findAccountTrigger() {
-      const candidates = document.querySelectorAll(ACCOUNT_TRIGGER_SELECTOR)
-      for (const candidate of candidates) {
-        if (candidate.querySelector(':scope > span') !== null) return candidate
+      for (const selector of ACCOUNT_TRIGGER_SELECTORS) {
+        let candidates = []
+        try {
+          candidates = [...document.querySelectorAll(selector)]
+        } catch (error) {
+          continue
+        }
+        for (const candidate of candidates) {
+          if (candidate.querySelector(':scope > span') !== null) return candidate
+        }
+        if (candidates.length > 0) return candidates[0]
       }
-      return candidates.length > 0 ? candidates[0] : null
+      return null
     }
 
     function ensureSidebarBalance() {
@@ -39,12 +53,13 @@
 
     function mountSidebarBalance() {
       ensureSidebarBalance()
-      const timer = window.setInterval(ensureSidebarBalance, 1000)
-      const observer = new MutationObserver(() => ensureSidebarBalance())
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+      // M0-S4: 'sidebar-balance' runs as one mutation task + one 1000ms ticker
+      // task on the shared scheduler instead of a private observer and interval.
+      const offMutation = runtimeOnMutation('sidebar-balance', ensureSidebarBalance)
+      const offTicker = runtimeEvery('sidebar-balance', ensureSidebarBalance, 1000)
       return () => {
-        window.clearInterval(timer)
-        observer.disconnect()
+        offMutation()
+        offTicker()
         for (const node of document.querySelectorAll('.' + SIDEBAR_BALANCE_CLASS)) node.remove()
       }
     }

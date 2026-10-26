@@ -33,7 +33,6 @@
       }
 
       const apply = () => {
-        scheduled = 0
         const hero = document.querySelector('[class*="_composerHero"]')
         document.documentElement.dataset.dshHero = hero === null ? 'false' : 'true'
         const card = document.querySelector('.duo-card')
@@ -43,9 +42,11 @@
         )
         const composer = composerCard === null ? null : composerCard.closest('[class*="_root"]')
         if (hero === null || card === null || row === null || composer === null) {
+          watchComposerCard(null)
           reset()
           return
         }
+        watchComposerCard(composerCard)
         const nodeChanged = card !== state.card || row !== state.row || composer !== state.composer
         if (nodeChanged) {
           reset()
@@ -139,18 +140,40 @@
 
       const schedule = () => {
         if (scheduled !== 0) return
-        scheduled = window.requestAnimationFrame(apply)
+        scheduled = window.requestAnimationFrame(() => {
+          scheduled = 0
+          apply()
+        })
+      }
+
+      // M0-S4: 'hero-layout' is a mutation task now (no 800ms full re-measure).
+      // The composer card can grow without any childList mutation (attachments,
+      // multi-line input), so its box is observed to re-run the same apply pass;
+      // viewport changes keep using the existing resize listener.
+      let composerResizeObserver = null
+      let observedComposerCard = null
+      const watchComposerCard = (card) => {
+        if (card === observedComposerCard) return
+        if (composerResizeObserver === null && typeof ResizeObserver === 'function') {
+          composerResizeObserver = new ResizeObserver(schedule)
+        }
+        if (composerResizeObserver !== null) {
+          if (observedComposerCard !== null) composerResizeObserver.unobserve(observedComposerCard)
+          if (card !== null) composerResizeObserver.observe(card)
+        }
+        observedComposerCard = card
       }
       schedule()
-      const timer = window.setInterval(apply, 800)
+      const offMutation = runtimeOnMutation('hero-layout', apply)
       window.addEventListener('resize', schedule)
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
       return () => {
-        window.clearInterval(timer)
+        offMutation()
         window.removeEventListener('resize', schedule)
-        observer.disconnect()
         if (scheduled !== 0) window.cancelAnimationFrame(scheduled)
+        scheduled = 0
+        if (composerResizeObserver !== null) composerResizeObserver.disconnect()
+        composerResizeObserver = null
+        observedComposerCard = null
         reset()
       }
     }

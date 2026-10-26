@@ -1397,8 +1397,8 @@
       var current = null;
       var seat = null; // 收起态那一行里的档位文字（菜单没打开时也要着色）
       var seatColor = ""; // 组件给的当前颜色：重新抓到元素时立刻补上，不必等下一次渲染
-      var observer = null;
-      var timer = null;
+      var disposeMutation = null;
+      var disposeTicker = null;
       var disposed = false;
       var seatLabels = options.seatLabels; // () => string[]，全部已知档位名
 
@@ -1517,18 +1517,15 @@
 
       function start() {
         scan();
-        var MO = win && (win.MutationObserver || (typeof MutationObserver === "function" ? MutationObserver : null));
-        if (typeof MO === "function") {
-          try {
-            observer = new MO(function () { scan(); });
-            observer.observe(doc.body || doc.documentElement, { childList: true, subtree: true });
-            return;
-          } catch (error) {
-            observer = null;
-          }
+        // M0-S4: 共享调度器接管 body 观察与周期任务。scan 是幂等的，所以
+        // 「每 400ms 兜底轮询」并进唯一 ticker 即可；不再自建 MO / setInterval。
+        // vendored 代码保持自包含：运行时帮助函数不存在时静默降级（预览/测试环境）。
+        if (typeof runtimeOnMutation === "function") {
+          disposeMutation = runtimeOnMutation("effort-slider", scan);
         }
-        // 没有 MutationObserver 时退化成低频轮询；反正每轮都很便宜。
-        if (win && typeof win.setInterval === "function") timer = win.setInterval(scan, 400);
+        if (typeof runtimeEvery === "function") {
+          disposeTicker = runtimeEvery("effort-slider", scan, 400);
+        }
       }
 
       return {
@@ -1543,13 +1540,13 @@
         },
         dispose: function () {
           disposed = true;
-          if (observer !== null) {
-            try { observer.disconnect(); } catch (error) { /* 忽略 */ }
-            observer = null;
+          if (disposeMutation !== null) {
+            try { disposeMutation(); } catch (error) { /* 忽略 */ }
+            disposeMutation = null;
           }
-          if (timer !== null) {
-            try { win.clearInterval(timer); } catch (error) { /* 忽略 */ }
-            timer = null;
+          if (disposeTicker !== null) {
+            try { disposeTicker(); } catch (error) { /* 忽略 */ }
+            disposeTicker = null;
           }
           releaseSeat();
           detach();
@@ -1733,6 +1730,7 @@
        * 档位是**后到**的（目录 load 完才有 efforts）。那时 DOM 没有任何变化，
        * MutationObserver 不会响，所以这里在档位数变化时主动重扫一次 ——
        * 少了这一句，"目录晚到"会让滑条永远挂不上去（起步期抖动变永久失效）。
+       * （M0-S4 之后 400ms ticker 也会兜底，但这句保证即时挂上，不等下一拍。）
        */
       React.useEffect(function () {
         if (bridgeRef.current !== null) bridgeRef.current.scan();

@@ -44,15 +44,17 @@
         }
       }
       void load()
-      const timer = window.setInterval(() => {
+      const poll = () => {
         if (loaded === false && modelNamesById.size === 0) void load()
         decorate()
-      }, 700)
-      const observer = new MutationObserver(decorate)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true, characterData: true })
+      }
+      // M0-S4: 'usage-model-labels' runs as one mutation task + one 700ms ticker
+      // task on the shared scheduler instead of a private observer and interval.
+      const offMutation = runtimeOnMutation('usage-model-labels', decorate)
+      const offTicker = runtimeEvery('usage-model-labels', poll, 700)
       return () => {
-        window.clearInterval(timer)
-        observer.disconnect()
+        offMutation()
+        offTicker()
       }
     }
 

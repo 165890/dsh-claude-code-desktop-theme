@@ -1,11 +1,12 @@
     const SHELL_CSS = [
       HERO_SERIF_FACE,
       UI_SERIF_FACE,
-      // Sidebar column fill.
-      `${LIGHT} ._2H3hWW_root{background:${SHELL.sidebarFill}}`,
-      // New Session: every stroke removed, 32px tall, 6px corners.
-      `${LIGHT} ._2H3hWW_root:not(._2H3hWW_collapsed) ._2H3hWW_newSession{border:0!important;background:${SHELL.newSessionFill}!important;height:32px;min-height:32px;padding:0 12px;border-radius:6px}`,
-      `${LIGHT} ._2H3hWW_root:not(._2H3hWW_collapsed) ._2H3hWW_newSession:hover{background:${SHELL.newSessionHover}!important}`,
+      // New Session: every stroke removed, 32px tall, 6px corners. The host's
+      // CSS-module hash changes every build (01 audit: the old sidebar hash was dead), so
+      // this targets the stable *_newSession key on the button itself — the
+      // spans inside it must keep their own geometry.
+      `${LIGHT} button[class*="_newSession"]{border:0!important;background:${SHELL.newSessionFill}!important;height:32px;min-height:32px;padding:0 12px;border-radius:6px}`,
+      `${LIGHT} button[class*="_newSession"]:hover{background:${SHELL.newSessionHover}!important}`,
       // Selected session row: cream fill plus a forced 2px terracotta rail on
       // the row's own left edge. A pseudo-element keeps it glued to the item
       // through scrolling, resizing and re-renders, with no runtime geometry.
@@ -114,7 +115,7 @@
       `.dsh-tray-right{gap:8px;flex:0 1 auto;justify-content:flex-end;overflow:hidden}`,
       `.dsh-tray-sep{color:#b4ab99;flex:none}`,
       `.dsh-sidebar-footer-balance{flex:0 1 auto!important;min-width:0!important;align-self:center!important;margin-left:auto!important;padding-left:8px!important;max-width:52%!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:right!important;font-family:${UI_FONT}!important;font-size:12px!important;line-height:16px!important;color:#7f7869!important;white-space:nowrap!important;pointer-events:none!important}`,
-      `button[data-signed-out][aria-haspopup="menu"]{overflow:hidden!important}`,
+      `[data-slot="settings.launcher"] button{overflow:hidden!important}`,
       `[data-collapsed="true"] .dsh-sidebar-footer-balance{display:none!important}`,
       `.dsh-hud-part{display:inline-flex;align-items:center;gap:6px;flex:none;min-width:0}`,
       // Numbers own a fixed-width, right-aligned slot: a value change updates
@@ -167,8 +168,6 @@
       `code,code *,pre,pre *,kbd,kbd *,samp,samp *,.shiki,.shiki *,.xterm,.xterm *,.monaco-editor,.monaco-editor *,.duo-tile-value,.duo-tile-value *,.duo-model-tokens,.duo-model-tokens *,.dsh-composer-tray,.dsh-composer-tray *,.dsh-diff-badge,.dsh-diff-badge *,.dsh-review-drawer,.dsh-review-drawer *{font-family:${CODE_FONT}!important}`,
       `${LIGHT}{background-color:#f5f3ee!important;color:#1d1b16!important}`,
       `${DARK}{background-color:#24221f!important;color:#ece7dd!important}`,
-      `${LIGHT} ._2H3hWW_root{background:#f5f3ee!important}`,
-      `${DARK} ._2H3hWW_root{background:#24221f!important}`,
       `${LIGHT} [class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]){background:#f5f3ee!important}`,
       `${DARK} [class*="_card"]:not([class*="_cardWorkspaceTrigger"]):has([data-lexical-editor="true"]){background:#2b2825!important}`,
       `${LIGHT} .dsh-composer-tray{color:#7f7869!important}`,

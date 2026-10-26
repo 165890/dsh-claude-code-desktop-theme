@@ -8,8 +8,9 @@
     // The dot itself is a CSS pseudo-element on the host's leading slot, so it
     // is not a React child and a sidebar re-render can never delete it. Only the
     // row's `data-dsh-status` attribute is written from the real bridge stores.
-    // A 500ms timer, one observer and the bridge's change listeners keep it in
-    // sync; losing `busy` switches back to the idle dot instantly.
+    // M0-S4: a 500ms runtime ticker task and a runtime mutation task (both named
+    // 'sidebar-status-dots') plus the bridge's change listeners keep it in sync;
+    // the shared scheduler owns the single body observer and ticker.
     const SESSION_ROW_SELECTOR = '[role="treeitem"][data-row-key^="session:"]'
     const SESSION_ID_PREFIX = 'session:'
 
@@ -54,14 +55,15 @@
         }
       }
       apply()
-      const timer = window.setInterval(apply, 500)
-      const observer = new MutationObserver(apply)
-      observer.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+      // M0-S4: one mutation task + one 500ms ticker task ('sidebar-status-dots')
+      // instead of a private observer and interval.
+      const offMutation = runtimeOnMutation('sidebar-status-dots', apply)
+      const offTicker = runtimeEvery('sidebar-status-dots', apply, 500)
       bridgeListeners.add(apply)
       return () => {
         bridgeListeners.delete(apply)
-        window.clearInterval(timer)
-        observer.disconnect()
+        offTicker()
+        offMutation()
         statusCache.clear()
         for (const row of document.querySelectorAll('[data-dsh-status]')) delete row.dataset.dshStatus
       }

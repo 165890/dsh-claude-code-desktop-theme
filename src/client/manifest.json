@@ -3,6 +3,7 @@
   "note": "Ordered parts, concatenated verbatim by scripts/build.mjs. Order is behavior \u2014 do not reorder or insert separators.",
   "parts": [
     "src/client/parts/01-module-head.js",
+    "src/client/parts/01b-runtime-scheduler.js",
     "src/client/parts/02-usage-overview.js",
     "src/client/parts/03-tokens-and-fonts.js",
     "src/client/parts/04-shell-css.js",
@@ -18,6 +19,7 @@
     "src/client/parts/14-effort-slider.js",
     "src/client/parts/15-desktop-pet.js",
     "src/client/parts/16-realtime-voice.js",
+    "src/client/parts/16a-anchor-registry.js",
     "src/client/parts/17-assembly.js"
   ],
   "m0s3Baseline": {

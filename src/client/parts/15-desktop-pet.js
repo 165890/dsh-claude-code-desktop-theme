@@ -222,7 +222,7 @@
       let state = 'idle'
       let cooldown = false
       let hiddenFlag = false
-      let breathTimer = 0
+      let disposeBreath = null
       let blinkTimer = 0
       let blinkRestoreTimer = 0
       let reactionTimer = 0
@@ -230,8 +230,8 @@
       let ensureTimer = 0
       let lastSendAt = 0
       let pointerStart = null
-      let mountObserver = null
-      let themeObserver = null
+      let disposeMountTask = null
+      let disposeThemeTask = null
       let resizeObserver = null
       let intersectionObserver = null
 
@@ -289,18 +289,25 @@
       const idleFrame = () => (breathPhase === 0 ? 'idle' : 'idle_lo')
 
       const stopBreath = () => {
-        if (breathTimer !== 0) {
-          window.clearInterval(breathTimer)
-          breathTimer = 0
+        if (disposeBreath !== null) {
+          disposeBreath()
+          disposeBreath = null
         }
       }
+      /**
+       * 呼吸帧并入唯一 ticker。原间隔 1600ms 远大于 200ms 基频，观感不变，
+       * 因此不需要降帧。ticker 注册后会立刻到期一次，这里用 startedAt 挡掉，
+       * 让第一次呼吸翻转仍在 PET_BREATH_MS 之后发生。
+       */
       const startBreath = () => {
         stopBreath()
         if (disposed || shell === null || pageHidden() || reducedMotion()) return
         if (state === 'happy' || state === 'dash') return
-        breathTimer = window.setInterval(() => {
+        const startedAt = performance.now()
+        disposeBreath = runtimeEvery('pet-breath', () => {
           if (disposed || pageHidden()) return
           if (state === 'happy' || state === 'dash') return
+          if (performance.now() - startedAt < PET_BREATH_MS) return
           breathPhase = breathPhase === 0 ? 1 : 0
           setFrame(idleFrame())
         }, PET_BREATH_MS)
@@ -758,21 +765,14 @@
       window.__dshClaudeThemePetDebug = debug
 
       ensureMounted()
-      try {
-        mountObserver = new MutationObserver(scheduleEnsure)
-        mountObserver.observe(background(), { childList: true, subtree: true })
-      } catch {
-        mountObserver = null
-      }
-      try {
-        themeObserver = new MutationObserver(() => {
-          if (disposed) return
-          applySheet()
-        })
-        themeObserver.observe(background(), { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
-      } catch {
-        themeObserver = null
-      }
+      // M0-S4: both body observers fold into the shared one. `pet-mount` keeps
+      // the 300ms debounce in `scheduleEnsure`; `pet-theme` watches the host
+      // `data-ds-dark-theme` attribute, which the shared observer filters for.
+      disposeMountTask = runtimeOnMutation('pet-mount', scheduleEnsure)
+      disposeThemeTask = runtimeOnMutation('pet-theme', () => {
+        if (disposed) return
+        applySheet()
+      })
       document.addEventListener('visibilitychange', onVisibility)
       document.addEventListener('keydown', onKeyDown, { passive: true })
       document.addEventListener('pointerup', onSendPointerUp, true)
@@ -791,8 +791,14 @@
         }
         removeShell()
         removeRestore()
-        if (mountObserver !== null) mountObserver.disconnect()
-        if (themeObserver !== null) themeObserver.disconnect()
+        if (disposeMountTask !== null) {
+          disposeMountTask()
+          disposeMountTask = null
+        }
+        if (disposeThemeTask !== null) {
+          disposeThemeTask()
+          disposeThemeTask = null
+        }
         document.removeEventListener('visibilitychange', onVisibility)
         document.removeEventListener('keydown', onKeyDown)
         document.removeEventListener('pointerup', onSendPointerUp, true)
