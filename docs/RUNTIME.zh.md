@@ -76,3 +76,8 @@ runtimeEvery('hud-ticker', tick, 500)        // 合并进唯一 ticker（200ms �
 - **更新面板行**：需要宿主存在 `dt` 标签或 `.facts` / `[data-slot="settings.plugins"]` / `[role="dialog"]` 容器；宿主若把「当前版本」搬进无这些特征的普通容器，则不再挂载（有界降级，不再整页扫描）。
 - **07 首页菜单**：共享 observer 的 `attributeFilter` 不含 `style`，宿主若仅用内联 style 改已打开面板的位置/尺寸，依赖 childList / aria-expanded / scroll / resize 触发重定位。
 - **语音**：录音期 tick 保留为会话内计时（非后台轮询），页面隐藏时仍会暂停（runtime 的 visibility 处理不影响它，因为它在录音会话内）。
+## 8. 字体加载（M0-S6 / D8）
+
+- 字体是**一次性** `fetch`（8s 超时）→ `FontFace`，不属于调度器任务；页面隐藏/切换不影响已加载字体。
+- 失败时只 `console.warn` 一次并回退系统宋体栈，不重试、不轮询（避免新增定时器）。
+- 状态：`<html data-dsh-font="external|fallback">` + `__dshClaudeThemeFontDebug().external`（source / route / faceStatus / error）。

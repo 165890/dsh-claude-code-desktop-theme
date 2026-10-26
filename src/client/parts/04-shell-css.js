@@ -1,6 +1,5 @@
     const SHELL_CSS = [
       HERO_SERIF_FACE,
-      UI_SERIF_FACE,
       // New Session: every stroke removed, 32px tall, 6px corners. The host's
       // CSS-module hash changes every build (01 audit: the old sidebar hash was dead), so
       // this targets the stable *_newSession key on the button itself — the

@@ -98,7 +98,16 @@ node scripts/smoke.mjs   # 静态冒烟（产物形状/能力清单/路由/无�
 
 ## 7. 未做 / 后续
 
-- **字体外置**：`03-tokens-and-fonts.js` 仍内联 3.49 MB base64（占包体 92%）→ 留给 D8 / M0-S6（`connection.fetch` GET 已在 M0-S2 验证可用）。
+- **字体外置（M0-S6 已完成）**：2.6 MB GB2312 字体改为 `assets/ui-serif-gb2312.woff2`，由 Host `GET|HEAD /api/dsh-claude-code-desktop-theme/font` 提供；`client.js` 3.90 MB → **0.39 MB**（详见文末「字体外置」）。
 - 不引入 bundler / minify：当前产物是单文件闭包，压缩收益小且会破坏“字节可追溯”。
 - `index.js`（Host 半部，1,353 行）本步不拆。
 - 拆分没有改变任何区块内部代码；后续功能步骤按区块定位修改。
+## 字体外置（M0-S6 / D8）
+
+- **资产**：`assets/ui-serif-gb2312.woff2`（2,620,392 B，sha256 `ca4a4fcd…`）。与旧 `client.js` 内嵌 base64 解码结果**字节一致**（已用 sha256 双向核对），包内只保留这一份字体。
+- **Host 路由**：`GET|HEAD /api/dsh-claude-code-desktop-theme/font`，`connection.fetch.register({ methods: ['GET','HEAD'] })`；单文件 allowlist（不接受路径参数）；`content-type: font/woff2`、`content-length`、`cache-control: public, max-age=31536000, immutable`、`ETag`、`Last-Modified`；用 `fs.readFileSync` 读包内 assets（进程内缓存），`index.js` 不含任何 base64。
+- **Client**：`03-tokens-and-fonts.js` 删除 3,493,856 字符 base64，改为 `fetch(route, { cache: 'force-cache' })` → `arrayBuffer` → `new FontFace('DSH Serif UI', bytes, { weight: '200 900', display: 'swap' })` → `document.fonts.add`；8s `AbortController` 超时；失败 `console.warn` + 系统宋体栈回退，首屏不阻塞、不白屏；状态写入 `<html data-dsh-font="external|fallback">`，`__dshClaudeThemeFontDebug()` 输出 `external.{source,route,faceStatus,error}`。
+- **体积**：`client.js` 3,901,898 B → **412,053 B**（−3.49 MB，约占原包体 89%）；产物仍为单文件 19 parts。
+- **门禁**：smoke 增到 **49 项**——无内联 woff2、`UI_SERIF_BASE64` 已删、路由路径/方法/头/allowlist、asset 大小 + sha256 + woff2 magic、`package.json files` 包含 asset、Host 无 base64、index.js 无超长行。
+- **重启要求**：Host 半部改动不走 HMR —— 新增字体路由必须重启 DSH 一次；重启前 client 会走 fallback（实测 `error=HTTP 404`，页面正常渲染）。
+- **验证分工**：Host 处理器已用假 ctx 的 route test 完整验证（GET 字节 sha 一致 / HEAD 无 body / 头正确 / POST 不在 allowlist）；**live Connection 往返与 external 状态需重启后确认**。

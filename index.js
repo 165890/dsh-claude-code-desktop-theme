@@ -12,6 +12,77 @@ import { readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+// ── External UI serif asset (D8 / M0-S6) ───────────────────────────────────
+// The browser half no longer inlines the 2.6 MB GB2312 serif; the Host serves it
+// over the authenticated Connection fetch channel:
+//   GET|HEAD /api/dsh-claude-code-desktop-theme/font
+// The allowlist is exactly one file, so the route cannot read arbitrary package
+// files. Bytes are read once from the packaged asset and cached per process.
+const FONT_PATH = '/api/dsh-claude-code-desktop-theme/font'
+const FONT_ASSET_NAME = 'ui-serif-gb2312.woff2'
+const FONT_ASSET_URL = new URL(`./assets/${FONT_ASSET_NAME}`, import.meta.url)
+const FONT_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+
+// Lazily read + cache the font asset and its validators.
+let fontAsset
+function readFontAsset() {
+  if (fontAsset !== undefined) return fontAsset
+  const stat = statSync(FONT_ASSET_URL)
+  const bytes = readFileSync(FONT_ASSET_URL)
+  if (bytes.byteLength === 0) throw new Error('font asset is empty')
+  fontAsset = {
+    bytes,
+    etag: 'W/"' + bytes.byteLength.toString(16) + '-' + Math.round(stat.mtimeMs).toString(16) + '"',
+    lastModified: new Date(stat.mtimeMs).toUTCString(),
+  }
+  return fontAsset
+}
+
+// Headers shared by GET and HEAD: static, immutable and sniff-proof.
+function fontAssetHeaders(asset) {
+  return {
+    'content-type': 'font/woff2',
+    'content-length': String(asset.bytes.byteLength),
+    'cache-control': FONT_CACHE_CONTROL,
+    'etag': asset.etag,
+    'last-modified': asset.lastModified,
+    'x-content-type-options': 'nosniff',
+  }
+}
+
+// Serve the font asset on the Connection fetch channel (GET + explicit HEAD).
+function installFontAssetRoute(ctx) {
+  ctx.inject(['connection'], (scope) => {
+    const connection = scope.get('connection')
+    const register = typeof connection?.fetch?.register === 'function' ? connection.fetch.register.bind(connection.fetch) : undefined
+    if (register === undefined) return
+    scope.effect(
+      () =>
+        register(
+          {
+            path: FONT_PATH,
+            methods: ['GET', 'HEAD'],
+            fetch: async (request) => {
+              try {
+                const asset = readFontAsset()
+                const headers = fontAssetHeaders(asset)
+                if (request.method === 'HEAD') return new Response(null, { status: 200, headers })
+                return new Response(asset.bytes, { status: 200, headers })
+              } catch (error) {
+                return Response.json(
+                  { ok: false, error: { code: 'font-asset', message: String(error?.message ?? error) } },
+                  { status: 404, headers: { 'cache-control': 'no-store' } },
+                )
+              }
+            },
+          },
+          'dsh-claude-code-desktop-theme: font asset route',
+        ),
+      'dsh-claude-code-desktop-theme: font asset route',
+    )
+  })
+}
+
 /**
  * Usage overview summary (merged from the former dsh-usage-overview plugin).
  *
@@ -1345,6 +1416,11 @@ function installUpdateRoutes(ctx) {
 /** Loader entry: install the merged usage summary route. */
 export function apply(ctx) {
   installUsageSummaryRoute(ctx)
+  try {
+    installFontAssetRoute(ctx)
+  } catch (error) {
+    ctx.logger?.warn?.(`dsh-claude-code-desktop-theme: font route failed: ${String(error?.message ?? error)}`)
+  }
   try {
     installUpdateRoutes(ctx)
   } catch (error) {

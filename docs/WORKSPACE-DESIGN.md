@@ -85,6 +85,8 @@
 | Code / 终端 | CODE_FONT（SF Mono 栈） | 12.5/1.5 | diff、终端、行内代码 |
 | Chip | UI_FONT | 11.5/1/500 | Local/项目/分支 chips |
 
+> 字体加载（M0-S6/D8）：GB2312 宋体经 Host `GET|HEAD /api/dsh-claude-code-desktop-theme/font` 外置，client 用 `FontFace` 异步加载（`display:swap`）；失败回退 `Noto Serif SC / Songti SC / SimSun` 系统宋体栈，正文仍保持无衬线（§8 决策 1）。
+
 ### 2.4 间距 / 圆角 / 阴影 / 层级 / 动效
 
 | 类别 | 档位（px） | 用法 |
@@ -207,3 +209,11 @@
 3. **右侧 Dock 默认宽度与开合**：360px、默认关闭（推荐）还是 400px、默认保留上次 Tab？
 4. **状态色橙/绿边界**：waiting 用 warn 琥珀、busy 用 accent 橙；两者同屏可能难分。是否把 busy 改中性灰环、只让 waiting 用橙？
 5. **Dashboard 数据口径文案**：KPI「Messages」= user+assistant 合计（推荐），token 统计含 cache miss+hit 分开显示还是合并？需要你定口径（决定 tooltip 与图例）。
+
+## 8. 拍板结论（2026-10-26，Lead）
+
+1. **正文衬线**：保持现方案——正文无衬线；宋体只用于 Display / Pane 标题 / KPI 数字 / hero。
+2. **Diff 默认**：unified；右栏宽度 ≥900px 或全屏时自动 side-by-side，允许每 tab 手动切换并记住。
+3. **右栏 Dock**：默认 360px、默认关闭；布局持久化交给宿主（`dsh.sidebar-right.v1.<sessionId>`），插件不覆盖；不额外造「记住上次 Tab」状态。
+4. **状态色**：不改——busy 陶土橙旋转弧、waiting 琥珀实心点、idle 灰点；靠形状/动效区分，带 `aria-label`/tooltip。
+5. **Dashboard**：Messages = user+assistant；Total tokens = input+output；cache hit/miss 放 tooltip/次级明细，不并入主 KPI；Models 图例用 in/out。

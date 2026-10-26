@@ -215,6 +215,15 @@
           style.dataset.pluginCss = PLUGIN_ID + '/shell.css'
           style.textContent = SHELL_CSS
           document.head.appendChild(style)
+          // M0-S6: start the external serif fetch immediately after the shell CSS is
+          // in place. First paint uses the system serif stack; the face is swapped
+          // in when the FontFace resolves (font-display: swap). The loader never
+          // throws and never blocks the theme layer.
+          try {
+            void loadExternalSerif()
+          } catch (error) {
+            // Diagnostics only; the fallback stack already renders.
+          }
           // One failing mount must not abort the whole layer: the loader treats a
           // thrown activation as a fatal boot error and restarts the window. Each
           // mount is isolated and degrades to a no-op disposer instead.
@@ -355,6 +364,8 @@
             bodyFontFamily: bodyStyle.fontFamily,
             uiSerifLoaded: document.fonts.check('400 14px "DSH Serif UI"'),
             uiSerifFaces: faces,
+            dataDshFont: document.documentElement.getAttribute('data-dsh-font'),
+            external: fontDebugState(),
           }
           console.table(result)
           return result

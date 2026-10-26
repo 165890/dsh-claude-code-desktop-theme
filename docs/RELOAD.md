@@ -43,3 +43,9 @@
 ## 5. 与验收的关系
 
 本步的“行为零变化”由**字节等价**保证（拆分前后 sha256 相同，见 `docs/BUILD.zh.md`），HMR 只用于把新产物挂到运行时做一次真实冒烟；后续功能步骤再依赖 HMR 的 60s 迭代环。
+## 字体路由与重启（M0-S6）
+
+- `index.js` 新增字体资产路由 `GET|HEAD /api/dsh-claude-code-desktop-theme/font`：**Host 半部不走 HMR，必须重启 DSH 一次**后才可用。
+- 重启前：client 的 `fetch` 收到 404 → 自动回退系统宋体栈，`<html data-dsh-font="fallback">`，页面正常渲染（实机截图 `shots/M0-S6-fallback.png`）。
+- 重启后验证：`__dshClaudeThemeFontDebug()` 应显示 `source: 'external'`、`faceStatus: 'loaded'`；`document.documentElement.dataset.dshFont === 'external'`；首屏视觉与 `shots/M0-S5-final-ui.png` 一致（宋体为用户已确认的 display 字体）。
+- **本步实测异常（需重启后复核）**：`client.js` 从 3.90 MB 缩到 0.39 MB 后，本机 HMR 没有自动重载（Ctrl+R 渲染器重载可加载新产物，已借此完成 fallback 验证）；M0-S3 的「HMR ≤2s」结论需重启后再确认一次，暂不修改其结论。
