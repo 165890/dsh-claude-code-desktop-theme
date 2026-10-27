@@ -106,10 +106,11 @@
 
 ### F01 会话侧栏（24–36s）
 - Anatomy：品牌行（logo 28 + 名称）→ 新建会话（32px 扁平行）→ 导航（插件/自动化任务/更多）→ 工作区分组（标题 + 折叠箭头 + 搜索/新建图标）→ 会话行（状态点 8 + 标题 + 时间 + hover 动作）→ Pinned 区 → 底部账户行（头像 20 + 名称 + 余额）。
-- 尺寸：宽 240；行高 28（导航）/ 30（会话）；分组标题 24；水平 padding 12。
+- 尺寸：列宽沿用宿主 264–420（默认 280，折叠 56）；内容 padding 12；行高 28（导航）/ 30（会话）；分组标题 24。设计稿的 240 仅作内容密度参考，插件不改宿主列宽。
 - 状态：hover `interactive-bg-hover` + 行尾 3 个 20px 图标；active 暖沙底 + 左侧 2px 陶土轨；empty 工作区显示「暂无会话 + 新建」；loading 骨架条 `--dsw-alias-bg-skeleton`；error 分组行内一行「加载失败 · 重试」。
 - Token：`--dsw-specific-sidebar-fill`、`--dsw-specific-sidebar-nav-item-active`、`--dsw-alias-label-primary/secondary`、状态点三色。
 - 锚点：`sidebar.workspaces.session.menu.item`、`sidebar.session.row.leading/hover`、`sidebar.workspaces.session.row.action`、`[role=treeitem][data-row-key^="session:"]`、`[data-sidebar-collapsed]`。
+- **Pinned 是宿主原生**：ui-workspace 已支持 Pin/置顶分区（pin 动作已在 session menu / row action 中）；插件只做皮肤与置顶标记，不自建 localStorage，不重复注册 Pin 动作。
 
 ### F02 多会话（D2=A+B，15–18s/31–36s）
 - 会话标签条（主列顶部，28px）：当前会话 + 其他打开会话；切换、关闭（× hover 才显示）；超宽滚动。
