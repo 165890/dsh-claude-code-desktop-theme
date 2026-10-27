@@ -62,6 +62,11 @@ function installFontAssetRoute(ctx) {
           {
             path: FONT_PATH,
             methods: ['GET', 'HEAD'],
+            // Exact Fetch routes must declare a body mode: the Connection bridge
+            // treats an undefined mode as "streaming" and builds the Request with
+            // a web-stream body, which throws for GET/HEAD ("GET cannot have a
+            // body") and surfaces as HTTP 400. 'buffered' keeps the empty body.
+            requestBody: 'buffered',
             fetch: async (request) => {
               try {
                 const asset = readFontAsset()

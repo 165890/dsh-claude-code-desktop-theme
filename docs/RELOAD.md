@@ -49,3 +49,21 @@
 - 重启前：client 的 `fetch` 收到 404 → 自动回退系统宋体栈，`<html data-dsh-font="fallback">`，页面正常渲染（实机截图 `shots/M0-S6-fallback.png`）。
 - 重启后验证：`__dshClaudeThemeFontDebug()` 应显示 `source: 'external'`、`faceStatus: 'loaded'`；`document.documentElement.dataset.dshFont === 'external'`；首屏视觉与 `shots/M0-S5-final-ui.png` 一致（宋体为用户已确认的 display 字体）。
 - **本步实测异常（需重启后复核）**：`client.js` 从 3.90 MB 缩到 0.39 MB 后，本机 HMR 没有自动重载（Ctrl+R 渲染器重载可加载新产物，已借此完成 fallback 验证）；M0-S3 的「HMR ≤2s」结论需重启后再确认一次，暂不修改其结论。
+
+### Host 半部热加载边界（2026-10-27 实测）
+
+- `dsh-hmr` / `client-hmr` 只覆盖浏览器产物：**改 `index.js` 必须整机重启 DSH**，HMR 不会重载 Host 模块。
+- `plugin_manager set_plugin(include:claude-code-desktop-theme, enabled:false→true)` 会立即应用（返回 `application: applied`），但 Node 的 ESM 模块缓存按 URL 命中旧模块：**Host 代码改动不会被这项操作带进来**。实测重新启用后 `GET /font` 仍是旧行为（HTTP 400），证明缓存未失效。
+- 结论：Host 修复的验证路径 = 重启 DSH（退出并重开）；不要在「disable/enable」后宣称 Host 改动已生效。
+
+### 浏览器 bundle 缓存（2026-10-27 实测）
+
+- 用 `plugin_manager` 对插件做 disable→enable 后，即使 Ctrl+R 重载渲染器，页面仍加载**旧的 client bundle**（磁盘上的新产物未被使用）；HMR 也未自动重载。
+- 因此 Host 改动验证不要依赖「禁用启用 + Ctrl+R」；可靠路径 = 整机重启 DSH（同时刷新 Host 模块与浏览器模块）。
+- 排除方法：重启后确认 `client.js` 的 sha256 与磁盘一致（可用 `__dshClaudeThemeRuntime()` / `__dshClaudeThemeAnchors()` 是否存在临时探针判断）。
+
+### Connection exact route 契约（2026-10-27 发现）
+
+- `connection.fetch.register({ path, methods, fetch })` 必须同时声明 `requestBody: 'buffered' | 'streaming'`。
+- 缺省时 Connection 网桥按 `"streaming"` 处理并构造带 web-stream body 的 `Request`；**GET/HEAD 不允许带 body**，于是网桥在进入 handler 前抛错 → 客户端看到 **HTTP 400**（无 content-type / content-length），与「路由不存在」的 404 不同，容易误判。
+- 正确写法：GET/HEAD 路由也声明 `requestBody: 'buffered'`（空 body），例如字体路由。

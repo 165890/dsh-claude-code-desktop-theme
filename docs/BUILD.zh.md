@@ -110,4 +110,5 @@ node scripts/smoke.mjs   # 静态冒烟（产物形状/能力清单/路由/无�
 - **体积**：`client.js` 3,901,898 B → **412,053 B**（−3.49 MB，约占原包体 89%）；产物仍为单文件 19 parts。
 - **门禁**：smoke 增到 **49 项**——无内联 woff2、`UI_SERIF_BASE64` 已删、路由路径/方法/头/allowlist、asset 大小 + sha256 + woff2 magic、`package.json files` 包含 asset、Host 无 base64、index.js 无超长行。
 - **重启要求**：Host 半部改动不走 HMR —— 新增字体路由必须重启 DSH 一次；重启前 client 会走 fallback（实测 `error=HTTP 404`，页面正常渲染）。
+- **Connection 契约（2026-10-27 实测）**：exact fetch route 必须声明 `requestBody`；GET/HEAD 用 `'buffered'`。缺省会被网桥当成 streaming 并构造带 body 的 GET Request → 直接 **HTTP 400**（与 404 不同）。已加 smoke 断言。
 - **验证分工**：Host 处理器已用假 ctx 的 route test 完整验证（GET 字节 sha 一致 / HEAD 无 body / 头正确 / POST 不在 allowlist）；**live Connection 往返与 external 状态需重启后确认**。

@@ -84,6 +84,7 @@ index.includes("'content-type': 'font/woff2'") ? ok('font route content-type fon
 index.includes('public, max-age=31536000, immutable') ? ok('font route immutable cache-control') : fail('font cache-control missing')
 index.includes('asset.etag') && index.includes('last-modified') ? ok('font route ETag + Last-Modified') : fail('font validators missing')
 index.includes('ui-serif-gb2312.woff2') ? ok('font allowlist names the packaged asset') : fail('font allowlist missing')
+index.includes("requestBody: 'buffered'") ? ok('exact Fetch routes declare a body mode (Connection contract)') : fail('exact route missing requestBody (bridge would 400 on GET)')
 index.includes('base64') ? fail('host index.js still embeds base64') : ok('host index.js has no base64 payload')
 Math.max(...index.split('\n').map((line) => line.length)) < 20000 ? ok('index.js lines stay small (no inlined payload)') : fail('index.js has an oversized line')
 
