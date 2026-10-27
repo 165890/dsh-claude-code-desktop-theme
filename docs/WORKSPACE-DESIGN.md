@@ -105,8 +105,8 @@
 > 视频时间码见 `02-video-feature-inventory.md`。
 
 ### F01 会话侧栏（24–36s）
-- Anatomy：品牌行（logo 28 + 名称）→ 新建会话（32px 扁平行）→ 导航（插件/自动化任务/更多）→ 工作区分组（标题 + 折叠箭头 + 搜索/新建图标）→ 会话行（状态点 8 + 标题 + 时间 + hover 动作）→ Pinned 区 → 底部账户行（头像 20 + 名称 + 余额）。
-- 尺寸：列宽沿用宿主 264–420（默认 280，折叠 56）；内容 padding 12；行高 28（导航）/ 30（会话）；分组标题 24。设计稿的 240 仅作内容密度参考，插件不改宿主列宽。
+- Anatomy：品牌行（logo 28 + 名称）→ 新建会话（32px 扁平行）→ 导航（插件/自动化任务/更多）→ 工作区分组（标题 + 折叠箭头 + 搜索/新建图标）→ 会话行（状态点 8 + 标题 + 时间 + hover 动作）→ Pinned（宿主原生：置顶行排最前，无独立标题）→ 底部账户行（头像 20 + 名称 + 余额）。
+- 尺寸：列宽沿用宿主 264–420（默认 280）；内容 padding 12；行高 28（导航）/ 30（会话）；分组标题 24。折叠时宿主隐藏整列，只留左上「打开侧边栏」按钮（**无 56px rail**）。设计稿的 240 仅作内容密度参考，插件不改宿主列宽。
 - 状态：hover `interactive-bg-hover` + 行尾 3 个 20px 图标；active 暖沙底 + 左侧 2px 陶土轨；empty 工作区显示「暂无会话 + 新建」；loading 骨架条 `--dsw-alias-bg-skeleton`；error 分组行内一行「加载失败 · 重试」。
 - Token：`--dsw-specific-sidebar-fill`、`--dsw-specific-sidebar-nav-item-active`、`--dsw-alias-label-primary/secondary`、状态点三色。
 - 锚点：`sidebar.workspaces.session.menu.item`、`sidebar.session.row.leading/hover`、`sidebar.workspaces.session.row.action`、`[role=treeitem][data-row-key^="session:"]`、`[data-sidebar-collapsed]`。
@@ -127,7 +127,8 @@
 ### F04 面板菜单（36–44s）
 - 会话头右侧「⊞+」按钮 28×28，圆角 8；菜单宽 220、项高 32、图标 16 + 名称 + 右侧快捷键 caption；分隔线 `border-l1`。
 - 5 项：Preview（⌘⇧B）/ Diff（⌘⇧G）/ Terminal（宿主 `terminal.new`）/ Tasks / Plan。
-- 状态：hover `interactive-bg-hover`；disabled（如无 git 仓库的 Diff）40% 透明 + tooltip 说明；空态/失败 = 打开面板后由面板自身显示。
+- 状态：hover `interactive-bg-hover`；disabled 40% 透明 + tooltip 说明；空态/失败 = 打开面板后由面板自身显示。
+- 接入顺序：Preview/Terminal 先可用；Diff 在 M3 前 disabled；Tasks/Plan 先探测宿主是否注册对应 tab，存在才可点，否则 disabled 并注明「宿主未提供」。不伪造可用项。
 - 锚点：`conversation.session.header.actions` 槽、`ctx.sidebarRight.openTab`、`ctx.sidebarRightTabs.register`。
 
 ### F05 终端（37–44s）
