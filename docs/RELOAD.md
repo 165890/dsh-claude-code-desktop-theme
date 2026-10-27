@@ -50,6 +50,15 @@
 - 重启后验证：`__dshClaudeThemeFontDebug()` 应显示 `source: 'external'`、`faceStatus: 'loaded'`；`document.documentElement.dataset.dshFont === 'external'`；首屏视觉与 `shots/M0-S5-final-ui.png` 一致（宋体为用户已确认的 display 字体）。
 - **本步实测异常（需重启后复核）**：`client.js` 从 3.90 MB 缩到 0.39 MB 后，本机 HMR 没有自动重载（Ctrl+R 渲染器重载可加载新产物，已借此完成 fallback 验证）；M0-S3 的「HMR ≤2s」结论需重启后再确认一次，暂不修改其结论。
 
+### 重启后复测：HMR 恢复正常（2026-10-27 12:5x）
+
+- 第 3 次重启（进程 12:51:48，加载修复后的 `index.js`）后，HMR 恢复正常：
+  - 改动 part（探针标记 v3 → v4）→ `npm run build` → **2s 内自动重载**，页面 `epoch` 从 2 变 3，无需 Ctrl+R。
+  - 结论：`build → HMR ≤2s` 在整机重启后的干净状态下成立（与 M0-S3 一致）。
+- 之前「HMR 不自动」的现象只出现在两类操作之后：① `client.js` 从 3.9MB 缩到 0.39MB 的瞬间；② `plugin_manager` disable→enable。两者都会让页面/网桥持有旧修订；整机重启是可靠恢复方式。
+- 补充：本机 Electron 主窗口上 SendKeys `Ctrl+R` 不一定会触发重绘（本次两次未生效）；排查时以 HMR / 整机重启为准。探针留下的 orphan DOM 需 cleanup part 或整机重启清除（HMR 只重挂插件，不重置 DOM）。
+- 回退路径仍有效：Host 路由不可用时 `data-dsh-font=fallback`，系统宋体栈正常渲染（`shots/M0-S6-fallback.png`）。
+
 ### Host 半部热加载边界（2026-10-27 实测）
 
 - `dsh-hmr` / `client-hmr` 只覆盖浏览器产物：**改 `index.js` 必须整机重启 DSH**，HMR 不会重载 Host 模块。
