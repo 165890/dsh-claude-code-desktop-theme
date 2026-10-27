@@ -21,6 +21,7 @@
     "src/client/parts/16-realtime-voice.js",
     "src/client/parts/16a-anchor-registry.js",
     "src/client/parts/18-shell-sidebar.js",
+    "src/client/parts/19-pane-header-menu.js",
     "src/client/parts/17-assembly.js"
   ],
   "m0s3Baseline": {

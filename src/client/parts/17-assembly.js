@@ -50,6 +50,7 @@
         // Mount the merged usage overview card (formerly dsh-usage-overview).
         try {
           usageOverviewPlugin.apply(ctx)
+          paneHeaderMenuPlugin.apply(ctx)
         } catch (error) {
           window.__dshUsageMergeError = String(error && error.stack ? error.stack : error)
         }
