@@ -215,6 +215,13 @@
           style.dataset.pluginCss = PLUGIN_ID + '/shell.css'
           style.textContent = SHELL_CSS
           document.head.appendChild(style)
+          // M1-S1: sidebar skin as its own layer, injected after the shell CSS so
+          // its equal-specificity !important rules win without editing host DOM.
+          const sidebarStyle = document.createElement('style')
+          sidebarStyle.dataset.plugin = PLUGIN_ID
+          sidebarStyle.dataset.pluginCss = PLUGIN_ID + '/sidebar.css'
+          sidebarStyle.textContent = SIDEBAR_CSS
+          document.head.appendChild(sidebarStyle)
           // M0-S6: start the external serif fetch immediately after the shell CSS is
           // in place. First paint uses the system serif stack; the face is swapped
           // in when the FontFace resolves (font-display: swap). The loader never
@@ -279,6 +286,7 @@
             unmountTray()
             unmountStatus()
             style.remove()
+            sidebarStyle.remove()
             removeLayer()
           }
         }, PLUGIN_ID + ': shell layer'))
@@ -371,6 +379,9 @@
           return result
         }
         window.__dshClaudeThemeFontDebug = debugFont
+
+        // M1-S1 sidebar inventory/diagnostics (read-only: widths, rows, states).
+        window.__dshClaudeThemeSidebarDebug = sidebarDebugState
 
         // Layout diagnostics for issue reports: dumps the hero/composer stack,
         // the usage card and the sidebar account row with their boxes, so a

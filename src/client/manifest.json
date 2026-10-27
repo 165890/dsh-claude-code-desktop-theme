@@ -20,6 +20,7 @@
     "src/client/parts/15-desktop-pet.js",
     "src/client/parts/16-realtime-voice.js",
     "src/client/parts/16a-anchor-registry.js",
+    "src/client/parts/18-shell-sidebar.js",
     "src/client/parts/17-assembly.js"
   ],
   "m0s3Baseline": {

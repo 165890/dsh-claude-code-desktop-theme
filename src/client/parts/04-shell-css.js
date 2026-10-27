@@ -18,7 +18,7 @@
       // is computed style, not a React child, so a sidebar re-render can never
       // delete it -- the dot cannot blink out of existence.
       `[class*="_sessionRow"][data-dsh-status] [class*="_slot"]{display:inline-flex!important;flex:none;align-items:center!important;justify-content:center!important}`,
-      `[class*="_sessionRow"][data-dsh-status]:not([data-dsh-status="busy"]) [class*="_slot"]::before{content:""!important;display:inline-block!important;width:6px!important;height:6px!important;min-width:6px!important;min-height:6px!important;box-sizing:border-box!important;border-radius:50%!important;background:#7f7869!important;opacity:.5!important;flex:none!important;pointer-events:none!important}`,
+      `[class*="_sessionRow"][data-dsh-status]:not([data-dsh-status="busy"]) [class*="_slot"]::before{content:""!important;display:inline-block!important;width:8px!important;height:8px!important;min-width:8px!important;min-height:8px!important;box-sizing:border-box!important;border-radius:50%!important;background:#7f7869!important;opacity:.5!important;flex:none!important;pointer-events:none!important}`,
       `[class*="_sessionRow"][data-dsh-status="waiting"] [class*="_slot"]::before{background:#da7756!important;opacity:1!important}`,
       // Busy rows use the host's native rotating arc spinner (14px): keep it,
       // recolour it to the theme accent, and hide the pseudo dot instead.
