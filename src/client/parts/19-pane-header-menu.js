@@ -104,32 +104,38 @@
           const probe = document.getElementById(probeId)
           if (probe !== null) probe.remove()
         }
-        let slotDispose = null
+        // Match the working effort-slider pattern: keep the inject disposer,
+        // bind session scope via register.inject, and sit between host seats
+        // (order 15) so a trailing-seat clip cannot hide us.
+        let injectDispose = null
         try {
-          ctx.slots.inject('conversation.session.header.actions', () => {
-            slotDispose = ctx.slots.register(
+          injectDispose = ctx.slots.inject('conversation.session.header.actions', () => {
+            const registerDispose = ctx.slots.register(
               {
                 name: 'conversation.session.header.actions',
                 id: 'dsh-theme-panel-menu',
-                order: 30,
+                order: 15,
                 label: () => '面板菜单',
+                inject: (sessionId) => ({ sessionId }),
               },
               function PanelMenuSeat(props) {
                 return h(PanelMenuButton, { api, sessionId: props?.sessionId })
               },
             )
             window.__dshClaudeThemePaneMenuDebug.stage = 'captured'
-            window.__dshClaudeThemePaneMenuDebug.registerType = typeof slotDispose
-            return slotDispose
+            window.__dshClaudeThemePaneMenuDebug.registerType = typeof registerDispose
+            window.__dshClaudeThemePaneMenuDebug.order = 15
+            return registerDispose
           })
           window.__dshClaudeThemePaneMenuDebug.stage = 'injected'
+          window.__dshClaudeThemePaneMenuDebug.injectType = typeof injectDispose
         } catch (error) {
           window.__dshClaudeThemePaneMenuDebug.stage = 'error'
           window.__dshClaudeThemePaneMenuDebug.error = String(error && error.message ? error.message : error)
           console.warn('[dsh-claude-code-desktop-theme] pane menu unavailable', error)
         }
         ctx.effect(() => () => {
-          try { if (typeof slotDispose === 'function') slotDispose() } catch (error) { /* ignored */ }
+          try { if (typeof injectDispose === 'function') injectDispose() } catch (error) { /* ignored */ }
         }, 'dsh-claude-code-desktop-theme: pane menu cleanup')
         ctx.effect(() => {
           // F10: long titles truncate in CSS; mirror the full text into title= so
