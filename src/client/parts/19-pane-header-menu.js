@@ -5,7 +5,10 @@
     // enabled: Preview/Terminal open real right-dock tabs, Tasks opens the host
     // schedules page, Diff stays disabled until M3, Plan needs a host plan
     // resource that this menu cannot synthesize.
-    const PANEL_MENU_CSS = [
+// React.createElement alias — factory has React but no shared h; usage-overview's h is IIFE-local.
+    const h = React.createElement
+
+        const PANEL_MENU_CSS = [
       // ── pane header (F10) ────────────────────────────────────────────────
       `[class*="_titleRow"]{height:40px!important;min-height:40px!important;align-items:center!important;gap:8px!important;padding:0 12px 0 16px!important;box-sizing:border-box!important}`,
       `[class*="_titleRow"] [class*="_titleCluster"]{gap:8px!important;min-width:0!important;align-items:center!important}`,
