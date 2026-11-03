@@ -223,6 +223,13 @@
           sidebarStyle.dataset.pluginCss = PLUGIN_ID + '/sidebar.css'
           sidebarStyle.textContent = SIDEBAR_CSS
           document.head.appendChild(sidebarStyle)
+          // M1-S3: right-dock chrome, after the sidebar sheet. Attribute hooks
+          // only; the host keeps drag, split, float and the column width.
+          const dockStyle = document.createElement('style')
+          dockStyle.dataset.plugin = PLUGIN_ID
+          dockStyle.dataset.pluginCss = PLUGIN_ID + '/dock.css'
+          dockStyle.textContent = DOCK_CSS
+          document.head.appendChild(dockStyle)
           // M0-S6: start the external serif fetch immediately after the shell CSS is
           // in place. First paint uses the system serif stack; the face is swapped
           // in when the FontFace resolves (font-display: swap). The loader never
@@ -288,6 +295,7 @@
             unmountStatus()
             style.remove()
             sidebarStyle.remove()
+            dockStyle.remove()
             removeLayer()
           }
         }, PLUGIN_ID + ': shell layer'))
@@ -383,6 +391,9 @@
 
         // M1-S1 sidebar inventory/diagnostics (read-only: widths, rows, states).
         window.__dshClaudeThemeSidebarDebug = sidebarDebugState
+
+        // M1-S3 right-dock inventory (read-only: open state, panes, floats).
+        window.__dshClaudeThemeDockDebug = dockDebugState
 
         // Layout diagnostics for issue reports: dumps the hero/composer stack,
         // the usage card and the sidebar account row with their boxes, so a
